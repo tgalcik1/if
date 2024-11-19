@@ -4,7 +4,7 @@
 
         <div class="grid">
             <div class="item-slot" v-for="index in maxItems" :key="index">
-                <img src="https://via.placeholder.com/50" alt="Item" style="width: 100%">
+                <img src="" alt="." style="width: 100%">
             </div>
         </div>
     </div>

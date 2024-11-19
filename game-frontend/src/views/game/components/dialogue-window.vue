@@ -1,7 +1,36 @@
 <template>
     <div class="dialogue-window">
+        <div v-for="message in log.systemMessages" :key="message">{{message}}</div>
     </div>
 </template>
+
+<script>
+
+
+export default{
+    name: 'DialogueWindow',
+    data(){
+        return {
+            log:{
+                playerMessages: [],
+                systemMessages: []
+            }
+        }
+    },
+    methods: {
+    },
+    mounted() {
+        // get only message outputs from python game engine
+        if (window.api && window.api.receive) {
+            window.api.receive('fromMain', (data) => {
+                if (data.type == "message")
+                    this.log.systemMessages.push(data.message);
+            });
+        }
+    }
+}
+
+</script>
 
 <style scoped>
 .dialogue-window{

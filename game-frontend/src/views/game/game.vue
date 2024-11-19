@@ -22,6 +22,12 @@ export default {
     Sidebar,
     DialogueWindow,
     InputBar
+  },
+  mounted() {
+    window.api.send('toMain', { command: 'start-game' });
+  },
+  beforeUnmount() {
+    window.api.send('toMain', { command: 'end-game' });
   }
 };
 </script>

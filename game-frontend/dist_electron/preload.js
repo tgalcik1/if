@@ -93,7 +93,7 @@
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("const { contextBridge, ipcRenderer } = __webpack_require__(/*! electron */ \"electron\");\r\n\r\ncontextBridge.exposeInMainWorld('api', {\r\n  send: (channel, data) => {\r\n    let validChannels = ['toMain', 'survey'];\r\n    if (validChannels.includes(channel)) {\r\n      ipcRenderer.send(channel, data);\r\n    }\r\n  },\r\n  receive: (channel, func) => {\r\n    let validChannels = ['fromMain'];\r\n    if (validChannels.includes(channel)) {\r\n      ipcRenderer.on(channel, (event, ...args) => func(...args));\r\n    }\r\n  }\r\n});\r\n\n\n//# sourceURL=webpack:///./src/preload.js?");
+eval("const { contextBridge, ipcRenderer } = __webpack_require__(/*! electron */ \"electron\");\n\ncontextBridge.exposeInMainWorld('api', {\n  send: (channel, data) => {\n    let validChannels = ['toMain'];\n    if (validChannels.includes(channel)) {\n      ipcRenderer.send(channel, data);\n    }\n  },\n  receive: (channel, func) => {\n    let validChannels = ['fromMain'];\n    if (validChannels.includes(channel)) {\n      ipcRenderer.on(channel, (event, ...args) => func(...args));\n    }\n  }\n});\n\n\n//# sourceURL=webpack:///./src/preload.js?");
 
 /***/ }),
 
@@ -104,7 +104,7 @@ eval("const { contextBridge, ipcRenderer } = __webpack_require__(/*! electron */
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("module.exports = __webpack_require__(/*! C:\\Users\\Tristan\\Documents\\Github\\if\\game-frontend\\src\\preload.js */\"./src/preload.js\");\n\n\n//# sourceURL=webpack:///multi_./src/preload.js?");
+eval("module.exports = __webpack_require__(/*! /Users/tristangalcik/Documents/Github/if/game-frontend/src/preload.js */\"./src/preload.js\");\n\n\n//# sourceURL=webpack:///multi_./src/preload.js?");
 
 /***/ }),
 
