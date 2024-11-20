@@ -15,8 +15,8 @@ protocol.registerSchemesAsPrivileged([
 
 async function createWindow() {
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION,
       contextIsolation: !process.env.ELECTRON_NODE_INTEGRATION,
@@ -100,10 +100,20 @@ function startPythonGameEngine(event){
   const pythonScriptPath = path.join(__dirname, '../../game-engine/main.py');
   pythonProcess = spawn('python3', [pythonScriptPath]);
 
-  // handle stdout from python process
+  // fun fact electron likes to buffer data. this causes json.parse to freak out
+  let buffer = '';
+
+  // handle stdout from python process - modified to un-buffer data
   pythonProcess.stdout.on('data', (data) => {
-    console.log(`[GAME ENGINE]: ${data}`);
-    const output = JSON.parse(data.toString());
-    event.reply('fromMain', output);
+    buffer += data.toString();
+
+    let lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines){
+      console.log(`[GAME ENGINE]: ${line}`);
+      const output = JSON.parse(line.toString());
+      event.reply('fromMain', output);
+    }
   });
 }

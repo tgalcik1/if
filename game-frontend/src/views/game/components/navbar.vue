@@ -2,7 +2,7 @@
     <div class="navbar">
         <p style="margin-left: 16px">Heir of the Profane</p>
         <div>
-            <button style="height: 40px">Settings</button>
+            <button style="height: 40px" disabled>Settings</button>
             <button style="height: 40px" @click="this.$router.push('/')">Return to Title</button>
         </div>
     </div>

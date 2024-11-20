@@ -3,8 +3,13 @@ import json
 
 class Game():
     def __init__(self):
-        # send the intro dialogue messages
         pass
+
+    def intro(self):
+        # load intro dialogue txt
+        with open("../game-engine/intro.txt", "r") as f:
+            for line in f:
+                self.send_message({"type": "message", "message": line.strip()})
 
     def main_loop(self):
         while True:
@@ -13,19 +18,21 @@ class Game():
             action = self.parse_command(command)
 
             # determine which predefined action based on output parse
-            if action == "test":
+            if action == "look":
+                self.send_message({"type": "message", "message": "You look around the room."})
+            else:
                 self.send_message({"type": "message", "message": f"System echoing: {command}"})
-                sys.stdout.flush()
                 
     def parse_command(self, command):
-        return "test"
+        # parse command using parser model - return predefined action (get, look, etc.)
+        return command
     
     def send_message(self, message):
         print(json.dumps(message))
         sys.stdout.flush()
 
-            
 
 if __name__ == "__main__":
     game = Game()
+    game.intro()
     game.main_loop()

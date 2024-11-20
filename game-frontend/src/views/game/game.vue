@@ -2,8 +2,8 @@
     <div class="game-container">
       <Navbar/>
       <Sidebar/>
-      <DialogueWindow/>
-      <InputBar/>
+      <DialogueWindow ref="dialogueWindow"/>
+      <InputBar @player-message="handlePlayerMessage"/>
       
     </div>
 </template>
@@ -22,6 +22,11 @@ export default {
     Sidebar,
     DialogueWindow,
     InputBar
+  },
+  methods:{
+    handlePlayerMessage(message){
+      this.$refs.dialogueWindow.addPlayerMessage(message);
+    }
   },
   mounted() {
     window.api.send('toMain', { command: 'start-game' });
