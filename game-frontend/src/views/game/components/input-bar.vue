@@ -19,7 +19,7 @@ export default{
             if (this.message)
             {
                 // first send to the dialogue window component so it shows up
-                this.$emit('player-message', this.message);
+                this.$emit('player-message', 'player-message', this.message);
 
                 // then send to the game engine
                 window.api.send('toMain', { command: 'send-message', message: this.message });

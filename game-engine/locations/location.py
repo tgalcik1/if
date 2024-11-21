@@ -19,8 +19,8 @@ class Location:
     def remove_character(self, character):
         self.characters.remove(character)
 
-    def add_connection(self, location, path):
-        self.connecting_locations[location] = path
+    def add_connection(self, direction, location):
+        self.connecting_locations[direction] = location
 
     def remove_connection(self, location):
         del self.connecting_locations[location]

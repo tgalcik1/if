@@ -24,8 +24,8 @@ export default {
     InputBar
   },
   methods:{
-    handlePlayerMessage(message){
-      this.$refs.dialogueWindow.addPlayerMessage(message);
+    handlePlayerMessage(type, message){
+      this.$refs.dialogueWindow.addMessage(type, message);
     }
   },
   mounted() {

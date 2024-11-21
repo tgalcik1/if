@@ -1,10 +1,16 @@
 <template>
     <div class="dialogue-window" ref="dialogueWindow">
         <div class="messages" v-for="(message, index) in messages" :key="index">
-            <div class="system-message" v-if="message.type == 'system'">
+            <div class="hr-with-text" v-if="message.type == 'header-message'">
+                <span>{{message.text}}</span>
+            </div>
+            <div class="system-message" v-if="message.type == 'system-message'">
                 <p>{{message.text}}</p>
             </div>
-            <div class="player-message" v-if="message.type == 'player'">
+            <div class="player-message" v-if="message.type == 'player-message'">
+                <p>{{message.text}}</p>
+            </div>
+            <div class="story-message" v-if="message.type == 'story-message'">
                 <p>{{message.text}}</p>
             </div>
         </div>
@@ -22,12 +28,8 @@ export default{
         }
     },
     methods: {
-        addPlayerMessage(message){
-            this.messages.push({type: "player", text: message});
-            this.scrollToBottom();
-        },
-        addSystemMessage(message){
-            this.messages.push({type: "system", text: message});
+        addMessage(type, message){
+            this.messages.push({type: type, text: message});
             this.scrollToBottom();
         },
         scrollToBottom(){
@@ -37,7 +39,7 @@ export default{
                     container.scrollTo({top: container.scrollHeight, behavior: "smooth"});
                 }
             });
-        }
+        },
     },
     mounted() {
         this.scrollToBottom();
@@ -45,8 +47,8 @@ export default{
         // get only message outputs from python game engine
         if (window.api && window.api.receive) {
             window.api.receive('fromMain', (data) => {
-                if (data.type == "message")
-                    this.addSystemMessage(data.message);
+                this.addMessage(data.type, data.message);
+                console.log(data);
             });
         }
     }
@@ -105,6 +107,23 @@ export default{
     background-color: rgba(0,0,0,0.5);
 }
 
+.story-message{
+    align-self: flex-start;
+    display: inline-block;
+    margin-top: 8px;
+    margin-left: 8px;
+    margin-right: 8px;
+    background-color: rgb(241, 221, 183);
+    padding-left: 12px;
+    padding-right: 12px;
+    border: 2px solid black;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    word-wrap: break-word;
+    line-height: 1.5;
+    box-shadow: 4px 4px 1px rgba(0, 0, 0, 0.5);
+}
+
 .system-message{
     align-self: flex-start;
     display: inline-block;
@@ -146,4 +165,26 @@ export default{
 .messages:last-child{
     margin-bottom: 60px;
 }
+
+.hr-with-text {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+    margin-right: 8px;
+    margin-top: 32px;
+    margin-bottom: 24px;
+}
+
+.hr-with-text::before,
+.hr-with-text::after {
+    content: '';
+    flex: 1;
+    border-top: 2px solid black;
+}
+
+.hr-with-text span {
+    margin: 0 12px;
+    color: black;
+}
+
 </style>

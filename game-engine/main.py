@@ -14,9 +14,16 @@ class Game():
 
     def intro(self):
         # load intro dialogue txt
+        self.send_message({"type": "header-message", "message": "Introduction"})
         with open("../game-engine/data/txt/intro.txt", "r") as f:
             for line in f:
-                self.send_message({"type": "message", "message": line.strip()})
+                self.send_message({"type": "story-message", "message": line.strip()})
+        self.send_message({"type": "header-message", "message": "Chapter 1"})
+
+        # print overview of starting area
+        self.send_message({"type": "system-message", "message": f"You are at {self.player.location.name}."})
+        self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
+        self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
 
     def main_loop(self):
         while True:
@@ -25,13 +32,30 @@ class Game():
             action = self.parse_command(command)
 
             # determine which predefined action based on output parse
+            # look
             if action == "look":
-                self.send_message({"type": "message", "message": "You look around the room."})
+                self.send_message({"type": "system-message", "message": f"You look around {self.player.location.name}."})
+                self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
+                self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
+                
+            # move
+            elif action.split()[0] == "move" and len(action.split()) > 1:
+                direction = action.split()[1]
+                current_location = self.locations[self.player.location.name]
+                self.player.move(current_location, direction)
+
+            # unknown command
             else:
-                self.send_message({"type": "message", "message": f"System echoing: {command}"})
+                self.send_message({"type": "system-message", "message": f"System echoing: {command}"})
                 
     def parse_command(self, command):
         # to-do: parse command using parser model - return predefined action (get, look, etc.)
+
+        # placeholder "move/go" command for testing
+        tokens = command.lower().split()
+        if tokens[0] in ["move", "go"] and len(tokens) > 1:
+            return f"move {tokens[1]}"
+
         return command
     
     def send_message(self, message):
@@ -51,16 +75,17 @@ if __name__ == "__main__":
 
     # define locations
     all_locations = {
-        "start": Location(name="start", description="The starting location", items=[all_items["sword"]], characters=[]),
-        "end": Location(name="end", description="The ending location", items=[], characters=[])
+        "the starting location": Location(name="the starting location", description="There's not much to do here, but it's certainly some kind of starting location.", items=[all_items["sword"]], characters=[]),
+        "the end location": Location(name="the end location", description="There also isn't much to do here yet. The walls have two-toned scrolling checkerboard patterns covering them.", items=[], characters=[])
     }
 
     # define location connections
-    all_locations["start"].add_connection("end", "north")
-    all_locations["end"].add_connection("start", "south")
+    all_locations["the starting location"].add_connection("north", all_locations["the end location"])
+    all_locations["the end location"].add_connection("south", all_locations["the starting location"])
 
-    # define player
-    player = Player(name="Player", description="A wandering traveler", inventory=[all_items["amulet"]], location="start", max_health=100)
+    # define player and initialize
+    player = Player(name="Player", description="A wandering traveler", inventory=[all_items["amulet"]], location=all_locations["the starting location"], max_health=100)
+    all_locations["the starting location"].add_character(player)
 
     # start game
     game = Game(player=player, items=all_items, characters=all_characters, locations=all_locations)
