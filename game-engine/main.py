@@ -4,13 +4,15 @@ from characters.player import Player
 from locations.location import Location
 from items.item import Item
 from items.weapon import Weapon
+from quests.quest import Quest
 
 class Game():
-    def __init__(self, player, items, characters, locations):
+    def __init__(self, player, items, characters, locations, quests):
         self.player = player
         self.items = items
         self.characters = characters
         self.locations = locations
+        self.quests = quests
 
     def intro(self):
         # load intro dialogue txt
@@ -18,7 +20,7 @@ class Game():
         with open("../game-engine/data/txt/intro.txt", "r") as f:
             for line in f:
                 self.send_message({"type": "story-message", "message": line.strip()})
-        self.send_message({"type": "header-message", "message": "Chapter 1"})
+        self.check_all_quests()  # unlocks the first quest
 
         # print overview of starting area
         self.send_message({"type": "system-message", "message": f"You are at {self.player.location.name}."})
@@ -36,6 +38,11 @@ class Game():
             if action == "look":
                 self.send_message({"type": "system-message", "message": f"You look around {self.player.location.name}."})
                 self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
+
+                if self.player.location.items:
+                    item_names = [item.name for item in self.player.location.items]
+                    self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
+                
                 self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
                 
             # move
@@ -47,6 +54,9 @@ class Game():
             # unknown command
             else:
                 self.send_message({"type": "system-message", "message": f"System echoing: {command}"})
+
+            # check quest status after stdin
+            self.check_all_quests()
                 
     def parse_command(self, command):
         # to-do: parse command using parser model - return predefined action (get, look, etc.)
@@ -62,6 +72,17 @@ class Game():
         print(json.dumps(message))
         sys.stdout.flush()
 
+    def check_all_quests(self):
+        for quest in self.quests.values():
+            # complete quest
+            if quest.is_unlocked and not quest.is_completed and quest.check_conditions(self.quests, self.player, "complete"):
+                quest.complete()
+                self.send_message({"type": "quest-complete", "name": f"{quest.name}", "description": f"{quest.description}"})
+            # unlock quest
+            if not quest.is_unlocked and quest.check_conditions(self.quests, self.player, "unlock"):
+                quest.unlock()
+                self.send_message({"type": "quest-unlock", "name": f"{quest.name}", "description": f"{quest.description}"})
+
 
 if __name__ == "__main__":
     # define items
@@ -70,7 +91,7 @@ if __name__ == "__main__":
         "sword": Weapon(name="Sword", description="A sharp sword", image_filename="sword.png", damage=10)
     }
 
-    # define characters
+    # define NPCs
     all_characters = {}
 
     # define locations
@@ -87,7 +108,13 @@ if __name__ == "__main__":
     player = Player(name="Player", description="A wandering traveler", inventory=[all_items["amulet"]], location=all_locations["the starting location"], max_health=100)
     all_locations["the starting location"].add_character(player)
 
+    # define quests
+    all_quests = {
+        "Go North": Quest(name="Go North", description="This is a test quest", unlock_conditions={}, complete_conditions={"at_location": "the end location"}),
+        "Get Sword": Quest(name="Get Sword", description="This is another test quest", unlock_conditions={"completed_quests": ["Go North"]}, complete_conditions={"has_items": [all_items["sword"]]})
+    }
+
     # start game
-    game = Game(player=player, items=all_items, characters=all_characters, locations=all_locations)
+    game = Game(player=player, items=all_items, characters=all_characters, locations=all_locations, quests=all_quests)
     game.intro()
     game.main_loop()

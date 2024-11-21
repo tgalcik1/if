@@ -47,8 +47,9 @@ export default{
         // get only message outputs from python game engine
         if (window.api && window.api.receive) {
             window.api.receive('fromMain', (data) => {
-                this.addMessage(data.type, data.message);
-                console.log(data);
+                if (['header-message', 'system-message', 'player-message', 'story-message'].includes(data.type)){
+                    this.addMessage(data.type, data.message);
+                }
             });
         }
     }
@@ -111,7 +112,7 @@ export default{
     align-self: flex-start;
     display: inline-block;
     margin-top: 8px;
-    margin-left: 8px;
+    margin-left: 16px;
     margin-right: 8px;
     background-color: rgb(241, 221, 183);
     padding-left: 12px;
@@ -128,7 +129,7 @@ export default{
     align-self: flex-start;
     display: inline-block;
     margin-top: 8px;
-    margin-left: 8px;
+    margin-left: 16px;
     margin-right: 50%;
     background-color: white;
     padding-left: 12px;
@@ -163,13 +164,13 @@ export default{
 }
 
 .messages:last-child{
-    margin-bottom: 60px;
+    margin-bottom: 64px;
 }
 
 .hr-with-text {
     display: flex;
     align-items: center;
-    margin-left: 8px;
+    margin-left: 16px;
     margin-right: 8px;
     margin-top: 32px;
     margin-bottom: 24px;

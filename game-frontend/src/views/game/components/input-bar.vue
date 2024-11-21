@@ -33,11 +33,11 @@ export default{
 
 <style scoped>
 .input-bar{
-    margin-left: -8px;
+    margin-left: 0px;
     background-color: rgba(0, 0, 0, 0);
     position: absolute;
-    bottom: 0;
-    width: calc(100% - 300px - 16px);
+    bottom: 8px;
+    width: calc(100% - 300px - 34px);
     height: 40px;
     display: flex;
     justify-content: space-between;

@@ -31,5 +31,9 @@ export default {
     height: calc(100vh - 40px);
     box-shadow: -4px 0px 4px 1px rgba(0, 0, 0, 0.2);
     z-index: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 2px solid black;
 }
 </style>

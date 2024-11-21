@@ -4,7 +4,7 @@
 
         <div class="grid">
             <div class="item-slot" v-for="index in maxItems" :key="index">
-                <img src="" alt="." style="width: 100%">
+                <img src="https://placehold.co/32x32" alt="." style="width: 100%">
             </div>
         </div>
     </div>
@@ -15,7 +15,7 @@ export default {
     name: 'Inventory',
     data() {
         return {
-            maxItems: 56,
+            maxItems: 64,
         };
     },
 };
@@ -27,6 +27,7 @@ export default {
 }
 
 .grid {
+    box-sizing: border-box;
     width: 100%;
     background: white;
     display: grid;

@@ -16,9 +16,13 @@
     display: flex;
     background: black;
     height: 40px;
-    justify-content: space-between;align-items: center;
+    justify-content: space-between;
+    align-items: center;
     color: white;
     align-items: center;
+    position: relative;
+    z-index: 10;
+    box-shadow: -4px 0px 4px 5px rgba(0, 0, 0, 0.2);
 }
 
 </style>
