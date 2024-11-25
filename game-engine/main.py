@@ -5,6 +5,8 @@ from locations.location import Location
 from items.item import Item
 from items.weapon import Weapon
 from quests.quest import Quest
+from openai import OpenAI
+client = OpenAI(api_key="")
 
 class Game():
     def __init__(self, player, items, characters, locations, quests):
@@ -13,6 +15,9 @@ class Game():
         self.characters = characters
         self.locations = locations
         self.quests = quests
+
+        with open("../game-engine/data/txt/parser_prompt_template.txt", "r") as file:
+            self.prompt_template = file.read()
 
     def intro(self):
         # load intro dialogue txt
@@ -42,9 +47,9 @@ class Game():
                 if self.player.location.items:
                     item_names = [item.name for item in self.player.location.items]
                     self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
-                
+
                 self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
-                
+
             # move
             elif action.split()[0] == "move" and len(action.split()) > 1:
                 direction = action.split()[1]
@@ -70,23 +75,30 @@ class Game():
 
             # unknown command
             else:
-                self.send_message({"type": "system-message", "message": f"System echoing: {command}"})
+                self.send_message({"type": "system-message", "message": "That's not a valid command."})
 
             # check quest statuses after stdin
             self.check_all_quests()
-                
+
     def parse_command(self, command):
-        # to-do: parse command using parser model - return predefined action (get, look, etc.)
+        # parse command using parser model - return predefined action (get, look, etc.)
+        prompt = self.prompt_template + f"\n\n{command}"
 
-        # placeholder "move/go" command for testing
-        tokens = command.lower().split()
-        if tokens[0] in ["move", "go"] and len(tokens) > 1:
-            return f"move {tokens[1]}"
-        if tokens[0] in ["get"] and len(tokens) > 1:
-            return f"get {tokens[1]}"
+        stream = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
+        parse = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                parse += chunk.choices[0].delta.content
 
-        return command
-    
+        parse = (parse.strip().replace('`', '').replace('\n', ''))
+        #print(parse or "null")
+
+        return parse or "null"
+
     def send_message(self, message):
         print(json.dumps(message))
         sys.stdout.flush()
@@ -106,7 +118,7 @@ class Game():
 if __name__ == "__main__":
     # define items
     all_items = {
-        "amulet": Item(name="Amulet", description="A shiny amulet passed down from your ancestors", image_filename="amulet.png"), 
+        "amulet": Item(name="Amulet", description="A shiny amulet passed down from your ancestors", image_filename="amulet.png"),
         "sword": Weapon(name="Sword", description="A sharp sword", image_filename="sword.png", damage=10)
     }
 
