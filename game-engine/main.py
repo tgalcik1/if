@@ -51,11 +51,28 @@ class Game():
                 current_location = self.locations[self.player.location.name]
                 self.player.move(current_location, direction)
 
+            # inventory
+            elif action == "inventory":
+                if self.player.inventory:
+                    item_names = [item.name for item in self.player.inventory]
+                    self.send_message({"type": "system-message", "message": f"Inventory: {', '.join(item_names)}"})
+                else:
+                    self.send_message({"type": "system-message", "message": "Your inventory is empty."})
+
+            # get
+            elif action.split()[0] == "get" and len(action.split()) > 1:
+                item_name = action.split()[1]
+                if item_name in self.items:
+                    item = self.items[item_name]
+                    self.player.add_item(item)
+                else:
+                    self.send_message({"type": "system-message", "message": f"The item '{item_name}' is not here."})
+
             # unknown command
             else:
                 self.send_message({"type": "system-message", "message": f"System echoing: {command}"})
 
-            # check quest status after stdin
+            # check quest statuses after stdin
             self.check_all_quests()
                 
     def parse_command(self, command):
@@ -65,6 +82,8 @@ class Game():
         tokens = command.lower().split()
         if tokens[0] in ["move", "go"] and len(tokens) > 1:
             return f"move {tokens[1]}"
+        if tokens[0] in ["get"] and len(tokens) > 1:
+            return f"get {tokens[1]}"
 
         return command
     
@@ -96,8 +115,8 @@ if __name__ == "__main__":
 
     # define locations
     all_locations = {
-        "the starting location": Location(name="the starting location", description="There's not much to do here, but it's certainly some kind of starting location.", items=[all_items["sword"]], characters=[]),
-        "the end location": Location(name="the end location", description="There also isn't much to do here yet. The walls have two-toned scrolling checkerboard patterns covering them.", items=[], characters=[])
+        "the starting location": Location(name="the starting location", description="There's not much to do here, but it's certainly some kind of starting location.", items=[], characters=[]),
+        "the end location": Location(name="the end location", description="There also isn't much to do here yet. The walls have two-toned scrolling checkerboard patterns covering them.", items=[all_items["sword"]], characters=[])
     }
 
     # define location connections

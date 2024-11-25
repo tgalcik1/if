@@ -51,8 +51,14 @@ class Character:
         pass
 
     def add_item(self, item):
-        # to-do: add item to inventory
-        pass
+        if item in self.location.items:
+            self.inventory.append(item)
+            self.location.items.remove(item)
+            print(json.dumps({"type": "system-message", "message": f"You picked up {item.name}."}))
+            sys.stdout.flush()
+        else:
+            print(json.dumps({"type": "system-message", "message": f"The item '{item.name}' is not here."}))
+            sys.stdout.flush()
 
     def drop_item(self, item):
         # to-do: drop item from inventory, add to location's items
