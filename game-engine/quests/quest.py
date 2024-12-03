@@ -35,6 +35,10 @@ class Quest():
                 for quest_name in value:
                     if quest_name not in quests or not quests[quest_name].is_completed:
                         return False
+                    
+            # certain list of enemies needs to be dead
+
+            
         
         return True
 

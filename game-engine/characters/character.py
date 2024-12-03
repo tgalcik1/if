@@ -10,6 +10,8 @@ class Character:
         self.location = location
         self.max_health = max_health
         self.current_health = max_health
+        self.base_damage = 1
+        self.dead = False
     
     def move(self, from_location, direction):
         if direction in from_location.connecting_locations:
@@ -24,6 +26,12 @@ class Character:
             # print location description
             print(json.dumps({"type": "system-message", "message": f"{to_location.description}"}))
             sys.stdout.flush()
+            if self.location.items:
+                item_names = [item.name for item in self.location.items]
+                print(json.dumps({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"}))
+            if self.location.characters:
+                character_names = [character.name for character in self.location.characters]
+                print(json.dumps({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"}))
 
             # print connecting locations
             print(json.dumps({"type": "system-message", "message": f"From here you can go: {', '.join(to_location.connecting_locations.keys())}"}))
@@ -34,21 +42,51 @@ class Character:
             sys.stdout.flush()
 
 
-    def attack(self, target):
-        # to-do: attack target
-        pass
+    def attack(self, target, weapon=None):
+        # some of these conditions will only occur when called by the player in invalid situations
+        # will handle these same checks for NPC attack behavior separately so it doesn't print the error messages
+        if target in self.location.characters and target.dead == False:
+            if weapon not in self.inventory:
+                if weapon == None:
+                    print(json.dumps({"type": "system-message", "message": f"{self.name} attacks {target.name}."}))
+                    target.take_damage(self.base_damage)
+                    return
+                else:
+                    print(json.dumps({"type": "system-message", "message": f"You don't have any weapon '{weapon.name}'."}))
+                    sys.stdout.flush()
+                    return
+            else:
+                print(json.dumps({"type": "system-message", "message": f"{self.name} attacks {target.name} with their {weapon.name}."}))
+                sys.stdout.flush()
+                target.take_damage(weapon.damage * self.base_damage)
+                return
+        else:
+            print(json.dumps({"type": "system-message", "message": f"The character '{target.name}' is not here."}))
+            sys.stdout.flush()
+            return
 
     def take_damage(self, damage):
-        # to-do: take damage
-        pass
+        self.current_health -= damage
+        if self.current_health <= 0:
+            self.die()
+        else:
+            print(json.dumps({"type": "system-message", "message": f"{self.name} takes {damage} damage."}))
+            sys.stdout.flush()
 
     def heal(self, amount):
         # to-do: heal character
         pass
 
     def die(self):
-        # to-do: character death
-        pass
+        self.dead = True
+        print(json.dumps({"type": "system-message", "message": f"{self.name} has died."}))
+        sys.stdout.flush()
+
+        # drop all items
+        for item in self.inventory:
+            self.drop_item(item)
+
+        self.location.remove_character(self)
 
     def add_item(self, item):
         if item in self.location.items:
@@ -61,8 +99,10 @@ class Character:
             sys.stdout.flush()
 
     def drop_item(self, item):
-        # to-do: drop item from inventory, add to location's items
-        pass
+        self.inventory.remove(item)
+        self.location.add_item(item)
+        print(json.dumps({"type": "system-message", "message": f"{self.name} dropped their {item.name}."}))
+        sys.stdout.flush()
 
     def give_item(self, item, target):
         # to-do: give item from inventory to target

@@ -1,6 +1,7 @@
 import sys
 import json
 from characters.player import Player
+from characters.character import Character
 from locations.location import Location
 from items.item import Item
 from items.weapon import Weapon
@@ -30,6 +31,12 @@ class Game():
         # print overview of starting area
         self.send_message({"type": "system-message", "message": f"You are at {self.player.location.name}."})
         self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
+        if self.player.location.characters:
+            character_names = [character.name for character in self.player.location.characters]
+            self.send_message({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"})
+        if self.player.location.items:
+            item_names = [item.name for item in self.player.location.items]
+            self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
         self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
 
     def main_loop(self):
@@ -43,6 +50,10 @@ class Game():
             if action == "look":
                 self.send_message({"type": "system-message", "message": f"You look around {self.player.location.name}."})
                 self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
+
+                if self.player.location.characters:
+                    character_names = [character.name for character in self.player.location.characters]
+                    self.send_message({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"})
 
                 if self.player.location.items:
                     item_names = [item.name for item in self.player.location.items]
@@ -73,6 +84,40 @@ class Game():
                 else:
                     self.send_message({"type": "system-message", "message": f"The item '{item_name}' is not here."})
 
+            # talk
+            elif action.split()[0] == "talk" and len(action.split()) > 1:
+                character_name = action.split()[1]
+                if character_name.lower() in self.characters:
+                    character = self.characters[character_name.lower()]
+                    if character.location == self.player.location:
+                        self.send_message({"type": "system-message", "message": f"You talk to {character.name}."})
+                    else:
+                        self.send_message({"type": "system-message", "message": f"The character '{character_name}' is not here."})
+                else:
+                    self.send_message({"type": "system-message", "message": f"The character '{character_name}' is not here."})
+
+            # attack
+            elif action.split()[0] == "attack" and len(action.split()) > 1:
+                character_name = action.split()[1]
+                weapon_name = action.split("with")[1].strip() if "with" in action else None
+
+                # get character
+                if character_name.lower() in self.characters:
+                    character = self.characters[character_name.lower()]
+
+                    # get weapon
+                    if weapon_name and weapon_name.lower() in self.items:
+                        weapon = self.items[weapon_name.lower()]
+                        self.player.attack(character, weapon)
+                    else:
+                        self.player.attack(character)
+                else:
+                    self.send_message({"type": "system-message", "message": f"The character '{character_name}' is not here."})
+
+            # use item
+
+            # give item
+
             # unknown command
             else:
                 self.send_message({"type": "system-message", "message": "That's not a valid command."})
@@ -95,8 +140,6 @@ class Game():
                 parse += chunk.choices[0].delta.content
 
         parse = (parse.strip().replace('`', '').replace('\n', ''))
-        #print(parse or "null")
-
         return parse or "null"
 
     def send_message(self, message):
@@ -116,14 +159,12 @@ class Game():
 
 
 if __name__ == "__main__":
-    # define items
+    # define items - keep all keys lowercase
     all_items = {
         "amulet": Item(name="Amulet", description="A shiny amulet passed down from your ancestors", image_filename="amulet.png"),
-        "sword": Weapon(name="Sword", description="A sharp sword", image_filename="sword.png", damage=10)
+        "sword": Weapon(name="Sword", description="A sharp sword", image_filename="sword.png", damage=10),
+        "key": Item(name="Key", description="A key that unlocks a door", image_filename="key.png")
     }
-
-    # define NPCs
-    all_characters = {}
 
     # define locations
     all_locations = {
@@ -134,6 +175,14 @@ if __name__ == "__main__":
     # define location connections
     all_locations["the starting location"].add_connection("north", all_locations["the end location"])
     all_locations["the end location"].add_connection("south", all_locations["the starting location"])
+
+    # define NPCs - keep all keys lowercase
+    all_characters = {
+        "john": Character(name="John", description="A friendly villager", inventory=[all_items["key"]], location=all_locations["the starting location"], max_health=50),
+    }
+
+    # add NPCs to locations
+    all_locations["the starting location"].add_character(all_characters["john"])
 
     # define player and initialize
     player = Player(name="Player", description="A wandering traveler", inventory=[all_items["amulet"]], location=all_locations["the starting location"], max_health=100)
