@@ -9,6 +9,12 @@
 
 export default{
     name: 'InputBar',
+    props: {
+        showCharacterDialogueWindow: {
+            type: Boolean,
+            default: false,
+        },
+    },
     data(){
         return {
             message: ''
@@ -43,6 +49,7 @@ export default{
     justify-content: space-between;
     padding: 8px;
     filter: drop-shadow(4px 4px 1px rgba(0, 0, 0, 0.5));
+    z-index: 10;
 }
 
 input{

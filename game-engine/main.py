@@ -21,6 +21,11 @@ class Game():
             self.prompt_template = file.read()
 
     def intro(self):
+        # initalize inventory
+        image_filenames = [item.image_filename for item in self.player.inventory]
+        print(json.dumps({"type": "inventory-update", "inventory": image_filenames}))
+        sys.stdout.flush()
+
         # load intro dialogue txt
         self.send_message({"type": "header-message", "message": "Introduction"})
         with open("../game-engine/data/txt/intro.txt", "r") as f:
@@ -32,11 +37,13 @@ class Game():
         self.send_message({"type": "system-message", "message": f"You are at {self.player.location.name}."})
         self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
         if self.player.location.characters:
-            character_names = [character.name for character in self.player.location.characters]
-            self.send_message({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"})
+            character_names = [character.name for character in self.player.location.characters if character != self.player]
+            if character_names:
+                self.send_message({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"})
         if self.player.location.items:
             item_names = [item.name for item in self.player.location.items]
-            self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
+            if item_names:
+                self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
         self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
 
     def main_loop(self):
@@ -52,12 +59,14 @@ class Game():
                 self.send_message({"type": "system-message", "message": f"{self.player.location.description}"})
 
                 if self.player.location.characters:
-                    character_names = [character.name for character in self.player.location.characters]
-                    self.send_message({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"})
+                    character_names = [character.name for character in self.player.location.characters if character != self.player]
+                    if character_names:
+                        self.send_message({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"})
 
                 if self.player.location.items:
                     item_names = [item.name for item in self.player.location.items]
-                    self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
+                    if item_names:
+                        self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
 
                 self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
 
@@ -90,7 +99,15 @@ class Game():
                 if character_name.lower() in self.characters:
                     character = self.characters[character_name.lower()]
                     if character.location == self.player.location:
-                        self.send_message({"type": "system-message", "message": f"You talk to {character.name}."})
+
+                        # initiate dialogue loop
+                        if not character.dead:
+                            self.send_message({"type": "system-message", "message": f"You speak with {character.name}."})
+                            self.send_message({"type": "dialogue-window", "status": "initiate-dialogue", "character": character.name})
+                            self.dialogue_loop(character)
+
+                        else:
+                            self.send_message({"type": "system-message", "message": f"{character.name} is dead."})
                     else:
                         self.send_message({"type": "system-message", "message": f"The character '{character_name}' is not here."})
                 else:
@@ -98,17 +115,17 @@ class Game():
 
             # attack
             elif action.split()[0] == "attack" and len(action.split()) > 1:
-                character_name = action.split()[1]
-                weapon_name = action.split("with")[1].strip() if "with" in action else None
+                character_name = action.split()[1].lower()
+                weapon_name = action.split("with")[1].strip().lower() if "with" in action else None
 
-                # get character
-                if character_name.lower() in self.characters:
-                    character = self.characters[character_name.lower()]
-
-                    # get weapon
-                    if weapon_name and weapon_name.lower() in self.items:
-                        weapon = self.items[weapon_name.lower()]
-                        self.player.attack(character, weapon)
+                if character_name in self.characters:
+                    character = self.characters[character_name]
+                    if weapon_name:
+                        if weapon_name in self.items and self.items[weapon_name] in self.player.inventory:
+                            weapon = self.items[weapon_name]
+                            self.player.attack(character, weapon)
+                        else:
+                            self.send_message({"type": "system-message", "message": f"The weapon '{weapon_name}' is not valid or not in your inventory."})
                     else:
                         self.player.attack(character)
                 else:
@@ -149,13 +166,40 @@ class Game():
     def check_all_quests(self):
         for quest in self.quests.values():
             # complete quest
-            if quest.is_unlocked and not quest.is_completed and quest.check_conditions(self.quests, self.player, "complete"):
+            if quest.is_unlocked and not quest.is_completed and quest.check_conditions(self.quests, self.player, self.characters, "complete"):
                 quest.complete()
                 self.send_message({"type": "quest-complete", "name": f"{quest.name}", "description": f"{quest.description}"})
             # unlock quest
-            if not quest.is_unlocked and quest.check_conditions(self.quests, self.player, "unlock"):
+            if not quest.is_unlocked and quest.check_conditions(self.quests, self.player, self.characters, "unlock"):
                 quest.unlock()
                 self.send_message({"type": "quest-unlock", "name": f"{quest.name}", "description": f"{quest.description}"})
+
+    def dialogue_loop(self, character):
+        # initialize dialogue model with character prompt template, read from file
+        #with open(f"../game-engine/data/txt/{character.name.lower()}_prompt_template.txt", "r") as file:
+        #    character_prompt_template = file.read()
+
+        # add additional game information to the character prompt template
+        # to-do
+
+        # continue speaking to character until dialogue window is closed by player or player ends conversation
+        while True:
+            # get user input, feed into dialogue model
+            player_input = sys.stdin.readline().strip()
+
+            # send player input to dialogue model and get output
+            character_output = None #to-do
+
+            # print model output
+            #self.send_message({"type": "dialogue-message", "message": character_output})
+            self.send_message({"type": "dialogue-message", "message": f"System echoing: {player_input}"}) # echo for testing
+
+            # end dialogue - model outputs special token [END]
+            if character_output == "[END]" or player_input == "[END]":
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
+                break
+
 
 
 if __name__ == "__main__":
@@ -190,8 +234,9 @@ if __name__ == "__main__":
 
     # define quests
     all_quests = {
-        "Go North": Quest(name="Go North", description="This is a test quest", unlock_conditions={}, complete_conditions={"at_location": "the end location"}),
-        "Get Sword": Quest(name="Get Sword", description="This is another test quest", unlock_conditions={"completed_quests": ["Go North"]}, complete_conditions={"has_items": [all_items["sword"]]})
+        "Defeat John": Quest(name="Defeat John", description="Defeat John", unlock_conditions={}, complete_conditions={"characters_dead": ["john"]}),
+        #"Go North": Quest(name="Go North", description="This is a test quest", unlock_conditions={}, complete_conditions={"at_location": "the end location"}),
+        #"Get Sword": Quest(name="Get Sword", description="This is another test quest", unlock_conditions={"completed_quests": ["Go North"]}, complete_conditions={"has_items": [all_items["sword"]]})
     }
 
     # start game

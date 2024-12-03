@@ -12,7 +12,7 @@ class Quest():
         self.is_unlocked = is_unlocked
         self.is_completed = is_completed
 
-    def check_conditions(self, quests, player, condition_type):
+    def check_conditions(self, quests, player, characters, condition_type):
         # check conditions for quest to be unlocked or completed
         if condition_type == "unlock":
             conditions = self.unlock_conditions
@@ -36,10 +36,13 @@ class Quest():
                     if quest_name not in quests or not quests[quest_name].is_completed:
                         return False
                     
-            # certain list of enemies needs to be dead
+            # certain list of characters needs to be dead
+            if condition == "characters_dead":
+                for character_name in value:
+                    if character_name not in characters or not characters[character_name].dead:
+                        return False
 
-            
-        
+
         return True
 
     def unlock(self):

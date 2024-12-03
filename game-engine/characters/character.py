@@ -14,6 +14,7 @@ class Character:
         self.dead = False
     
     def move(self, from_location, direction):
+        # only the player will be moving for now, so these messages are ok to refer to the player
         if direction in from_location.connecting_locations:
             to_location = from_location.connecting_locations[direction]
             from_location.remove_character(self)
@@ -28,10 +29,12 @@ class Character:
             sys.stdout.flush()
             if self.location.items:
                 item_names = [item.name for item in self.location.items]
-                print(json.dumps({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"}))
+                if item_names:
+                    print(json.dumps({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"}))
             if self.location.characters:
-                character_names = [character.name for character in self.location.characters]
-                print(json.dumps({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"}))
+                character_names = [character.name for character in self.location.characters if character != self]
+                if character_names:
+                    print(json.dumps({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"}))
 
             # print connecting locations
             print(json.dumps({"type": "system-message", "message": f"From here you can go: {', '.join(to_location.connecting_locations.keys())}"}))
@@ -45,25 +48,22 @@ class Character:
     def attack(self, target, weapon=None):
         # some of these conditions will only occur when called by the player in invalid situations
         # will handle these same checks for NPC attack behavior separately so it doesn't print the error messages
-        if target in self.location.characters and target.dead == False:
-            if weapon not in self.inventory:
-                if weapon == None:
-                    print(json.dumps({"type": "system-message", "message": f"{self.name} attacks {target.name}."}))
-                    target.take_damage(self.base_damage)
-                    return
-                else:
-                    print(json.dumps({"type": "system-message", "message": f"You don't have any weapon '{weapon.name}'."}))
-                    sys.stdout.flush()
-                    return
+        if target in self.location.characters and not target.dead:
+            if weapon is None:
+                print(json.dumps({"type": "system-message", "message": f"{self.name} attacks {target.name}."}))
+                sys.stdout.flush()
+                target.take_damage(self.base_damage)
             else:
                 print(json.dumps({"type": "system-message", "message": f"{self.name} attacks {target.name} with their {weapon.name}."}))
                 sys.stdout.flush()
                 target.take_damage(weapon.damage * self.base_damage)
-                return
         else:
-            print(json.dumps({"type": "system-message", "message": f"The character '{target.name}' is not here."}))
-            sys.stdout.flush()
-            return
+            if target.dead:
+                print(json.dumps({"type": "system-message", "message": f"{target.name} is already dead."}))
+                sys.stdout.flush()
+            else:
+                print(json.dumps({"type": "system-message", "message": f"The character '{target.name}' is not here."}))
+                sys.stdout.flush()
 
     def take_damage(self, damage):
         self.current_health -= damage
@@ -94,6 +94,12 @@ class Character:
             self.location.items.remove(item)
             print(json.dumps({"type": "system-message", "message": f"You picked up {item.name}."}))
             sys.stdout.flush()
+
+            # if the player was the one who picked up the item, print the new inventory
+            if self.name == "Player":
+                image_filenames = [item.image_filename for item in self.inventory]
+                print(json.dumps({"type": "inventory-update", "inventory": image_filenames}))
+                sys.stdout.flush()
         else:
             print(json.dumps({"type": "system-message", "message": f"The item '{item.name}' is not here."}))
             sys.stdout.flush()
@@ -105,5 +111,12 @@ class Character:
         sys.stdout.flush()
 
     def give_item(self, item, target):
-        # to-do: give item from inventory to target
-        pass
+        if item in self.inventory:
+            target.add_item(item)
+            self.inventory.remove(item)
+            print(json.dumps({"type": "system-message", "message": f"{self.name} gave {target.name} their {item.name}."}))
+            sys.stdout.flush()
+        else:
+            # only will happen when the player tries to give an item they don't have, npcs will have their own checks
+            print(json.dumps({"type": "system-message", "message": f"You don't have any item '{item.name}'."}))
+            sys.stdout.flush()
