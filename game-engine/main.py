@@ -230,14 +230,27 @@ if __name__ == "__main__":
         "Castle Hall": Location(name="Castle Hall", description="The Castle Hall is a vast, echoing chamber with high ceilings and grand chandeliers that once sparkled with light. Now, the chandeliers and portraits of long-dead royalty along the walls hang dark and faded. The floor is covered in a thick layer of dust, and the air is heavy with the scent of decay. At the far end of the hall, a grand staircase leads up to the upper levels of the castle. The left door leads to the Dining Hall and the right leads to an ominous presence.", items=[], characters=[]),
         "Dining Hall": Location(name="Dining Hall", description="The Dining Hall is a long, narrow room with a massive wooden table running down the center. The table could hold extravagant feasts fit for a king, but now it is covered in dust and cobwebs. Giant rats eat away at rotting food strewn across the room. At the far end of the hall there's a locked storage room.", items=[all_items("JarOfPickles")], characters=[GiantRats]),
         "Dungeon": Location(name="Dungeon", description="The storage room has been converted into a Dungeon - a dark, damp place, with narrow corridors and small, cramped cells. The only light comes from flickering torches mounted on the walls. The cells are empty now, but the heavy iron doors and rusted chains hint at the horrors that once took place here. Chained to the wall is the former Advisor to the King, Allan. He's bruised and emaciated but still lucid.", items=[all_items("QueensPendant")], characters=[AdvisorAllan]),
-        "DragonStatue": Location(name="Dragon Statue", description="The Dragon Statue is a massive, imposing figure carved from dark stone. It stands at the end of the hall, its wings spread wide and its mouth open in a silent roar. Its right eye is a ruby-like amulet that glow like the one found on the Executioner, and its left is hollow. The ground around it is cracked and uneven.", items=[], characters=["DragonStatue"]), 
-        "Castle Laboratory": Location(name="Castle Laboratory", description="The castle laboratory is a cavernous, stone-walled room filled with instruments of alchemy and ancient tomes of forbidden knowledge are piled across workbenches. At the center stands a grand, alchemical apparatus - an Empty Amulet. In the far corner, is a black and red leather-bound notebook, the Alchemist's Logs", items=[all_items("EmptyAmulet", "AlchemistLogs")], characters=[]),
+        "DragonStatueShrine": Location(name="Dragon Statue Shrine", description="The Dragon Statue is a massive, imposing figure carved from dark stone. It stands at the end of the hall, its wings spread wide and its mouth open in a silent roar. Its right eye is a ruby-like amulet that glow like the one found on the Executioner, and its left is hollow. The ground around it is cracked and uneven.", items=[], characters=["DragonStatue"]), 
+        "AlchemistLaboratory": Location(name="Alchemist's Laboratory", description="The castle laboratory is a cavernous, stone-walled room filled with instruments of alchemy and ancient tomes of forbidden knowledge are piled across workbenches. At the center stands a grand, alchemical apparatus - an Empty Amulet. In the far corner, is a black and red leather-bound notebook, the Alchemist's Logs", items=[all_items("EmptyAmulet", "AlchemistLogs")], characters=[]),
         "ThroneRoom": Location(name="Throne Room", description="The Throne Room, a grand hall that once echoed with regal proclamations and praises of Lenia, now lies in grim disarray. The once magnificent tapestries that adorned the walls have become moth-eaten and hang in tatters, their vibrant colors faded into a melancholic grayness. On the throne sits King Alderic, but he's transformed as a monstrous husk of his former self. He wears a crown holding a glowing green amulet, and his eyes have glazed over white. 'Come then Chosen! Let us see whose will is stronger — your false god or the greatest dynasty to ever be. Meet thy fate upon my blade and join your silent congregation!'", items=[], characters=[KingAlderic]),
     }
 
     # define location connections
-    all_locations["the starting location"].add_connection("north", all_locations["the end location"])
-    all_locations["the end location"].add_connection("south", all_locations["the starting location"])
+    # all_locations["the starting location"].add_connection("north", all_locations["the end location"])
+    # all_locations["the end location"].add_connection("south", all_locations["the starting location"])
+    all_locations["StartLocation"].add_connection("down", all_locations["CorruptedForest"])
+    all_locations["CorruptedForest"].add_connection("right", all_locations["Meadow"])
+    all_locations["CorruptedForest"].add_connection("down", all_locations["ChurchOfLenia"])
+    all_locations["ChurchOfLenia"].add_connection("right", all_locations["WatchTower"])
+    all_locations["WatchTower"].add_connection("down", all_locations["CitySquare"])
+    all_locations["CitySquare"].add_connection("right", all_locations["Marketplace"])
+    all_locations["CitySquare"].add_connection("down", all_locations["CastleHall"])
+    all_locations["CastleHall"].add_connection("right", all_locations["DiningHall"])
+    all_locations["CastleHall"].add_connection("left", all_locations["DragonStatueShrine"])
+    all_locations["CastleHall"].add_connection("down", all_locations["ThroneRoom"])
+    all_locations["DiningHall"].add_connection("down", all_locations["Dungeon"])
+    all_locations["DragonStatueShrine"].add_connection("right", all_locations["AlchemistLaboratory"])
+
 
     # define NPCs - keep all keys lowercase
     # all_characters = {
@@ -247,7 +260,7 @@ if __name__ == "__main__":
     # define NPCs - keep all keys lowercase
     all_characters = {
         "john": Character(name="John", description="A friendly villager", inventory=[all_items["ham"]], location=all_locations["StartLocation"], max_health=50),
-        "queen_elianora": Character(name="Queen Elianora", description="A fallen queen, turned into a vengeful spirit.", inventory=[], location=all_locations["CorruptedForest"], max_health=200),
+        "RimorTheAngel": Character(name="Rimor the Angel", description="Lenia's messenger sent as a vengeful spirit.", inventory=[], location=all_locations["CorruptedForest"], max_health=200),
         "head_priest_callum": Character(name="Head Priest Callum", description="The head priest of the Church of Lenia, now mortally wounded.", inventory=[], location=all_locations["ChurchOfLenia"], max_health=30),
         "hellish_ghouls": Character(name="Hellish Ghouls", description="Ghouls that haunt the Church of Lenia.", inventory=[], location=all_locations["ChurchOfLenia"], max_health=100),
         "restless_guard": Character(name="Restless Guard", description="A guard who still stands vigilant at the watchtower.", inventory=[], location=all_locations["WatchTower"], max_health=70),
@@ -256,12 +269,22 @@ if __name__ == "__main__":
         "giant_rats": Character(name="Giant Rats", description="Rats that have grown to an enormous size, feasting on rotting food.", inventory=[], location=all_locations["DiningHall"], max_health=20),
         "advisor_allan": Character(name="Advisor Allan", description="The former advisor to the king, now imprisoned and emaciated.", inventory=[], location=all_locations["Dungeon"], max_health=40),
         "king_alderic": Character(name="King Alderic", description="The former king, now a monstrous husk.", inventory=[], location=all_locations["ThroneRoom"], max_health=250),
-        "dragon_statue": Character(name="Dragon Statue", description="A massive, imposing figure carved from dark stone.", inventory=[], location=all_locations["DragonStatue"], max_health=200),
+        "dragon_statue": Character(name="Dragon Statue", description="A massive, imposing figure carved from dark stone.", inventory=[], location=all_locations["DragonStatueShrine"], max_health=200),
     }
 
 
     # add NPCs to locations
     all_locations["the starting location"].add_character(all_characters["john"])
+    all_locations["CorruptedForest"].add_character(all_characters["RimorTheAngel"])
+    all_locations["ChurchOfLenia"].add_character(all_characters["HeadPriestCallum"])
+    all_locations["ChurchOfLenia"].add_character(all_characters["HellishGhouls"])
+    all_locations["WatchTower"].add_character(all_characters["RestlessGuard"])
+    all_locations["CitySquare"].add_character(all_characters["Executioner"])
+    all_locations["Marketplace"].add_character(all_characters["RuinedKnights"])
+    all_locations["DiningHall"].add_character(all_characters["GiantRats"])
+    all_locations["Dungeon"].add_character(all_characters["AdvisorAllan"])
+    all_locations["DragonStatueShrine"].add_character(all_characters["DragonStatue"])
+    all_locations["ThroneRoom"].add_character(all_characters["KingAlderic"])
 
     # define player and initialize
     player = Player(name="Player", description="A wandering traveler", inventory=[all_items["amulet"]], location=all_locations["the starting location"], max_health=100)
@@ -269,7 +292,20 @@ if __name__ == "__main__":
 
     # define quests
     all_quests = {
-        "Defeat John": Quest(name="Defeat John", description="Defeat John", unlock_conditions={}, complete_conditions={"characters_dead": ["john"]}),
+        # Standings -100, -50, 50, 100; intermediate quests like dragon; 3 endings
+        # Blocks - 1. Get the guard to let you pass 2. Defeat Executioner 3. Unlock dragon statue 4. Unlock storage room/dungeon
+        "Convince the Guard": Quest(name="Convince the Guard", description="Convince the restless guard to let you pass the watchtower.", unlock_conditions={}, complete_conditions={"standings": 100}),
+        "Defeat the Executioner": Quest(name="Defeat the Executioner", description="Defeat the Executioner guarding the city square.", unlock_conditions={}, complete_conditions={"characters_dead": ["executioner"]}),
+        "Unlock the Dragon": Quest(name="Defeat the Dragon", description="Defeat the dragon guarding the castle.", unlock_conditions={"has_items":[all_items["RedAmulet"]]}, complete_conditions={""}), # give the dragon statue the red amulet
+        "Unlock the Storage Room": Quest(name="Unlock the Storage Room", description="Unlock the storage room in the castle.", unlock_conditions={}, complete_conditions={"has_items": [all_items["StorageRoomKey"]]}),
+
+        # 3 Endings
+        # good (Spare King Alderic), bad (Imprison King Alderic), neutral (Kill King Alderic)
+        "Spare King Alderic": Quest(name="Spare King Alderic", description="Spare the corrupted king and show mercy.", unlock_conditions={"has_items": [all_items["QueensPendant"]]}, complete_conditions={}),
+        "Defeat King Alderic": Quest(name="Defeat King Alderic", description="Defeat the corrupted king and end his reign of terror.", unlock_conditions={}, complete_conditions={"characters_dead": ["king alderic"]}),
+        "Imprison King Alderic": Quest(name="Imprison King Alderic", description="Imprison the corrupted king and seal him away, dooming the nation.", unlock_conditions={"has_items": [all_items["QueensPendant"]]}, complete_conditions={}),
+
+        # "Defeat John": Quest(name="Defeat John", description="Defeat John", unlock_conditions={}, complete_conditions={"characters_dead": ["john"]}),
         #"Go North": Quest(name="Go North", description="This is a test quest", unlock_conditions={}, complete_conditions={"at_location": "the end location"}),
         #"Get Sword": Quest(name="Get Sword", description="This is another test quest", unlock_conditions={"completed_quests": ["Go North"]}, complete_conditions={"has_items": [all_items["sword"]]})
     }
