@@ -37,7 +37,8 @@ class Character:
                     print(json.dumps({"type": "system-message", "message": f"Characters in this location: {', '.join(character_names)}"}))
 
             # print connecting locations
-            print(json.dumps({"type": "system-message", "message": f"From here you can go: {', '.join(to_location.connecting_locations.keys())}"}))
+            connecting_locations = [f"{direction} to {loc.name}" for direction, loc in to_location.connecting_locations.items()]
+            print(json.dumps({"type": "system-message", "message": f"From here you can go: {', '.join(connecting_locations)}"}))
             sys.stdout.flush()
 
         else:

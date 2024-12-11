@@ -1,7 +1,7 @@
 <template>
     <div class="character-dialogue-window" ref="characterDialogueWindow">
         <div class="header">
-            <p style="color: gray">Conversation with <span style="color: white">Character Name</span></p>
+            <p style="color: gray">Conversation with <span style="color: white">{{ character }}</span></p>
             <button class="end-conversation-button" @click="endConversation">End Conversation</button>
         </div>
 
@@ -26,6 +26,10 @@ export default {
             type: Array,
             default: () => [],
         },
+        character: {
+            type: String,
+            default: '',
+        }
     },
     methods:{
         endConversation(){
@@ -44,7 +48,7 @@ export default {
     left: 0;
     width: calc(100% - 300px);
     height: calc(100vh - 40px);
-    z-index: 2;
+    z-index: 15;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(15px);
     display: flex;
@@ -77,20 +81,20 @@ export default {
     margin-bottom: 64px;
 }
 
-.character-dialogue-window::-webkit-scrollbar {
+.messages-container::-webkit-scrollbar {
     width: 10px;
 }
 
-.character-dialogue-window::-webkit-scrollbar-track {
+.messages-container::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0);
 }
 
-.character-dialogue-window::-webkit-scrollbar-thumb {
+.messages-container::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.25);
     border-radius: 5px;
 }
 
-.character-dialogue-window::-webkit-scrollbar-thumb:hover {
+.messages-container::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.5);
 }
 

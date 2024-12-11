@@ -39,17 +39,17 @@ export default{
 
 <style scoped>
 .input-bar{
-    margin-left: 0px;
+    margin-left: 8px;
     background-color: rgba(0, 0, 0, 0);
     position: absolute;
     bottom: 8px;
-    width: calc(100% - 300px - 34px);
+    width: calc(100% - 300px - 50px);
     height: 40px;
     display: flex;
     justify-content: space-between;
     padding: 8px;
     filter: drop-shadow(4px 4px 1px rgba(0, 0, 0, 0.5));
-    z-index: 10;
+    z-index: 16;
 }
 
 input{
