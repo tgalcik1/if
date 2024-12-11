@@ -1,23 +1,18 @@
 <template>
-    <div :class="['dialogue-window', { 'forest-background': currentLocation === 'forest' }]">
-        <div class="parallax" v-if="currentLocation === 'forest'">
-            <div class="parallax-layer back"></div>
-            <div class="parallax-layer middle"></div>
-            <div class="parallax-layer front"></div>
-        </div>
-        <div class="dialogue-content" ref="dialogueContent">
+    <div>
+        <div class="dialogue-window" ref="dialogueWindow">
             <div class="messages" v-for="(message, index) in messages" :key="index">
                 <div class="hr-with-text" v-if="message.type == 'header-message'">
-                    <span>{{ message.text }}</span>
+                    <span>{{message.text}}</span>
                 </div>
                 <div class="system-message" v-if="message.type == 'system-message'">
-                    <p>{{ message.text }}</p>
+                    <p>{{message.text}}</p>
                 </div>
                 <div class="player-message" v-if="message.type == 'player-message'">
-                    <p>{{ message.text }}</p>
+                    <p>{{message.text}}</p>
                 </div>
                 <div class="story-message" v-if="message.type == 'story-message'">
-                    <p>{{ message.text }}</p>
+                    <p>{{message.text}}</p>
                 </div>
             </div>
         </div>
@@ -30,67 +25,68 @@
 <script>
 import CharacterDialogueWindow from './character-dialogue-window.vue';
 
-export default {
+export default{
     name: 'DialogueWindow',
-    components: {
+    components:
+    {
         CharacterDialogueWindow
     },
-    data() {
+    data(){
         return {
             messages: [],
             characterMessages: [],
-            showCharacterDialogueWindow: false,
-            currentLocation: "forest"
+            showCharacterDialogueWindow: false
         }
     },
     methods: {
-        addMessage(type, message) {
+        addMessage(type, message){
             // only add message if character dialogue window is not showing
-            if (!this.showCharacterDialogueWindow) {
-                this.messages.push({ type: type, text: message });
+            if (!this.showCharacterDialogueWindow){
+                this.messages.push({type: type, text: message});
                 this.scrollToBottom();
             }
             // otherwise, emit to character dialogue window
-            else {
+            else{
                 this.characterMessages.push({ type, text: message });
             }
         },
-        scrollToBottom() {
+        scrollToBottom(){
             this.$nextTick(() => {
-                const container = this.$refs.dialogueContent;
-                if (container) {
-                    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+                const container = this.$refs.dialogueWindow;
+                if (container){
+                    container.scrollTo({top: container.scrollHeight, behavior: "smooth"});
                 }
             });
-        }
+        },
     },
     mounted() {
         this.scrollToBottom();
-
+        
         // get only message outputs from python game engine
         if (window.api && window.api.receive) {
             window.api.receive('fromMain', (data) => {
-                if (['header-message', 'system-message', 'player-message', 'story-message'].includes(data.type)) {
+                if (['header-message', 'system-message', 'player-message', 'story-message'].includes(data.type)){
                     this.addMessage(data.type, data.message);
                 }
-                if (data.type == 'dialogue-window' && data.status == "initiate-dialogue") {
+                if (data.type == 'dialogue-window' && data.status == "initiate-dialogue"){
                     this.showCharacterDialogueWindow = true;
                 }
-                if (data.type == 'dialogue-window' && data.status == "end-dialogue") {
+                if (data.type == 'dialogue-window' && data.status == "end-dialogue"){
                     this.showCharacterDialogueWindow = false;
                     this.characterMessages = [];
                 }
-                if (data.type == 'dialogue-message' && this.showCharacterDialogueWindow) {
+                if (data.type == 'dialogue-message' && this.showCharacterDialogueWindow){
                     this.characterMessages.push({ type: 'dialogue-message', text: data.message });
                 }
             });
         }
     }
 }
+
 </script>
 
 <style scoped>
-.dialogue-window {
+.dialogue-window{
     display: flex;
     flex-direction: column;
     background: lightgray;
@@ -98,18 +94,16 @@ export default {
     left: 0;
     width: calc(100% - 300px);
     height: calc(100vh - 40px);
-    overflow-y: scroll;
-}
-
-.dialogue-window:not(.forest-background) {
+    overflow-y:scroll;
+    
     /* via https://gist.github.com/dfrankland/f6fed3e3ccc42e3de482b324126f9542 */
     background-image:
-    linear-gradient(45deg, #bbb 25%, transparent 25%),
-    linear-gradient(135deg, #bbb 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #bbb 75%),
-    linear-gradient(135deg, transparent 75%, #bbb 75%);
-    background-size: 25px 25px;
-    background-position: 0 0, 12.5px 0, 12.5px -12.5px, 0px 12.5px;
+      linear-gradient(45deg, #bbb 25%, transparent 25%), 
+      linear-gradient(135deg, #bbb 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #bbb 75%),
+      linear-gradient(135deg, transparent 75%, #bbb 75%);
+    background-size:25px 25px;
+    background-position:0 0, 12.5px 0, 12.5px -12.5px, 0px 12.5px;
     animation: scroll-checkerboard 2s linear infinite;
 }
 
@@ -122,75 +116,27 @@ export default {
     }
 }
 
-.forest-background .parallax {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    top: 0;
-    left: 0;
-    z-index: 0;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-}
-
-.parallax-layer {
-    position: absolute;
-    width: 200%; /* Double the width to allow seamless scrolling */
-    height: 100%;
-    background-repeat: repeat-x;
-    background-size: auto 100%;
-    animation: scroll infinite linear;
-}
-
-.parallax-layer.back {
-    background-image: url('../../../../public/backgrounds/forest/back.png');
-    animation-duration: 60s; /* slowest */
-    bottom: 0;
-}
-
-.parallax-layer.middle {
-    background-image: url('../../../../public/backgrounds/forest/middle.png');
-    animation-duration: 40s;
-    bottom: 0;
-}
-
-.parallax-layer.front {
-    background-image: url('../../../../public/backgrounds/forest/front.png');
-    animation-duration: 20s; /* fastest */
-    bottom: 0;
-}
-
-@keyframes scroll {
-    from {
-        transform: translateX(0);
-    }
-    to {
-        transform: translateX(-50%);
-    }
-}
-
 .dialogue-window::-webkit-scrollbar {
     width: 10px;
     margin-bottom: 100px;
 }
 
 .dialogue-window::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0);
+    background: rgba(0,0,0,0);
     margin-bottom: 50px;
 }
 
 .dialogue-window::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0,0,0,0.25);
     border-radius: 5px;
     border: 2px solid #ccc;
 }
 
 .dialogue-window::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0,0,0,0.5);
 }
 
-.story-message {
+.story-message{
     align-self: flex-start;
     display: inline-block;
     margin-top: 8px;
@@ -207,7 +153,7 @@ export default {
     box-shadow: 4px 4px 1px rgba(0, 0, 0, 0.5);
 }
 
-.system-message {
+.system-message{
     align-self: flex-start;
     display: inline-block;
     margin-top: 8px;
@@ -224,7 +170,7 @@ export default {
     box-shadow: 4px 4px 1px rgba(0, 0, 0, 0.5);
 }
 
-.player-message {
+.player-message{
     float: right;
     align-self: flex-end;
     margin-top: 8px;
@@ -241,11 +187,11 @@ export default {
     box-shadow: 4px 4px 1px rgba(0, 0, 0, 0.5);
 }
 
-.messages {
+.messages{
     width: 100%;
 }
 
-.messages:last-child {
+.messages:last-child{
     margin-bottom: 64px;
 }
 
@@ -270,9 +216,4 @@ export default {
     color: black;
 }
 
-.dialogue-content {
-    position: relative;
-    z-index: 1;
-    overflow-y: auto;
-}
 </style>

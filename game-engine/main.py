@@ -17,6 +17,23 @@ class Game():
         self.locations = locations
         self.quests = quests
 
+        # blocks
+        self.blocked_paths = {
+            "the castle gate watch tower": {
+                "down": {"location_name": "the city square of tridica", "quest": "Convince the Guard"}
+            },
+            "the city square of tridica": {
+                "right": {"location_name": "the marketplace", "quest": "Defeat the Executioner"},
+                "down": {"location_name": "the castle hall", "quest": "Defeat the Executioner"}
+            },
+            "the dining hall": {
+                "down": {"location_name": "the dungeon", "quest": "Unlock the Storage Room"}
+            },
+            "the dragon statue shrine": {
+                "right": {"location_name": "the alchemist's laboratory", "quest": "Unlock the Dragon"}
+            }
+        }
+
         with open("../game-engine/data/txt/parser_prompt_template.txt", "r") as file:
             self.prompt_template = file.read()
 
@@ -73,8 +90,13 @@ class Game():
             # move
             elif action.split()[0] == "move" and len(action.split()) > 1:
                 direction = action.split()[1]
-                current_location = self.locations[self.player.location.name]
-                self.player.move(current_location, direction)
+                current_location = self.locations[self.player.location.name.lower()]
+
+                # check for blocks
+                if not self.is_path_available(current_location, direction):
+                    self.send_message({"type": "system-message", "message": "That way is blocked."})
+                else:
+                    self.player.move(current_location, direction)
 
             # inventory
             elif action == "inventory":
@@ -86,7 +108,7 @@ class Game():
 
             # get
             elif action.split()[0] == "get" and len(action.split()) > 1:
-                item_name = action.split()[1]
+                item_name = " ".join(action.split()[1:])
                 if item_name in self.items:
                     item = self.items[item_name]
                     self.player.add_item(item)
@@ -95,7 +117,7 @@ class Game():
 
             # talk
             elif action.split()[0] == "talk" and len(action.split()) > 1:
-                character_name = action.split()[1]
+                character_name = " ".join(action.split()[1:])
                 if character_name.lower() in self.characters:
                     character = self.characters[character_name.lower()]
                     if character.location == self.player.location:
@@ -115,7 +137,7 @@ class Game():
 
             # attack
             elif action.split()[0] == "attack" and len(action.split()) > 1:
-                character_name = action.split()[1].lower()
+                character_name = " ".join(action.split()[1:action.split().index("with")]).lower() if "with" in action else " ".join(action.split()[1:]).lower()
                 weapon_name = action.split("with")[1].strip().lower() if "with" in action else None
 
                 if character_name in self.characters:
@@ -134,6 +156,19 @@ class Game():
             # use item
 
             # give item
+            elif action.split()[0] == "give" and len(action.split()) > 1:
+                item_name = " ".join(action.split()[1:action.split().index("to")])
+                character_name = " ".join(action.split()[action.split().index("to")+1:])
+
+                if item_name in self.items:
+                    item = self.items[item_name]
+                    if character_name in self.characters:
+                        character = self.characters[character_name]
+                        self.player.give_item(item, character)
+                    else:
+                        self.send_message({"type": "system-message", "message": f"The character '{character_name}' is not here."})
+                else:
+                    self.send_message({"type": "system-message", "message": f"The item '{item_name}' is not in your inventory."})
 
             # unknown command
             else:
@@ -174,6 +209,54 @@ class Game():
                 quest.unlock()
                 self.send_message({"type": "quest-unlock", "name": f"{quest.name}", "description": f"{quest.description}"})
 
+        self.update_blocked_paths()
+
+    def update_blocked_paths(self):
+        for location_name, directions in self.blocked_paths.items():
+            loc = self.locations[location_name]
+            for direction, data in directions.items():
+                quest_name = data["quest"]
+                target_location_name = data["location_name"]
+                if quest_name.lower() in [q.lower() for q in self.quests.keys()] and self.quests[quest_name].is_completed:
+                    target_loc = self.locations[target_location_name]
+                    if direction not in loc.connecting_locations or loc.connecting_locations[direction].name.lower() != target_location_name:
+                        loc.add_connection(direction, target_loc)
+
+                        # add reverse direction
+                        reverse_dir = self.get_reverse_direction(direction)
+                        if reverse_dir and reverse_dir not in target_loc.connecting_locations:
+                            target_loc.add_connection(reverse_dir, loc)
+
+    def get_reverse_direction(self, direction):
+        reverse_map = {"up": "down", "down": "up", "left": "right", "right": "left"}
+        return reverse_map.get(direction, None)
+
+    def is_path_available(self, current_location, direction):
+        loc_name = current_location.name.lower()
+        if direction in current_location.connecting_locations:
+            return True
+        else:
+            if loc_name in self.blocked_paths and direction in self.blocked_paths[loc_name]:
+                quest_name = self.blocked_paths[loc_name][direction]["quest"]
+                if self.quests[quest_name].is_completed:
+                    return True
+            return False
+
+    def get_available_directions(self, location):
+        directions = []
+        for d in location.connecting_locations.keys():
+            directions.append(d)
+
+        loc_name = location.name.lower()
+        if loc_name in self.blocked_paths:
+            for d, data in self.blocked_paths[loc_name].items():
+                quest_name = data["quest"]
+                if self.quests[quest_name].is_completed:
+                    if d not in directions:
+                        directions.append(d)
+
+        return directions
+
     def dialogue_loop(self, character):
         # initialize dialogue model with character prompt template, read from file
         #with open(f"../game-engine/data/txt/{character.name.lower()}_prompt_template.txt", "r") as file:
@@ -188,11 +271,10 @@ class Game():
             player_input = sys.stdin.readline().strip()
 
             # send player input to dialogue model and get output
-            character_output = None #to-do
+            character_output = "this is where the model output goes" #to-do
 
             # print model output
-            #self.send_message({"type": "dialogue-message", "message": character_output})
-            self.send_message({"type": "dialogue-message", "message": f"System echoing: {player_input}"}) # echo for testing
+            self.send_message({"type": "dialogue-message", "message": character_output})
 
             # end dialogue - model outputs special token [END]
             if character_output == "[END]" or player_input == "[END]":
@@ -205,105 +287,129 @@ class Game():
 if __name__ == "__main__":
     # define items - keep all keys lowercase
     all_items = {
-        # "sword": Weapon(name="Sword", description="A sharp sword", image_filename="sword.png", damage=10),
-        "Sycthe": Weapon(name="Sycthe", description="A sharp sycthe that can be used to harvest crops or enemies.", image_filename="sycthe.png", damage=10),
-        "AurumFlower": Item(name="Aurum Flower", description="A rare golden flower that only blooms in the meadow.", image_filename="flower.png"),
-        "HolyWaterVial": Item(name="Holy Water Vial", description="A vial of holy water that be thrown at enemies for massive damage.", image_filename="vial.png"),
-        "StorageRoomKey": Item(name="Storage Room Key", description="A key that unlocks the storage room in the castle.", image_filename="key.png"),
-        "RedAmulet": Item(name="Red Amulet", description="A ruby red amulet that glows with ominous power.", image_filename="amulet.png"),
-        "EmptyAmulet": Item(name="Empty Amulet", description="An amulet with an empty socket, waiting to be filled with a corrupt soul.", image_filename="empty_amulet.png"),
-        "JarOfPickles": Item(name="Jar of Pickles", description="A jar filled with pickles, surprisingly well-preserved and tasty.", image_filename="pickles.png"),
-        "QueensPendant": Item(name="The Queen's Pendant", description="A holy relic pendant that once belonged to the late queen with the power to cleanse the wicked.", image_filename="pendant.png"),
-        "AlchemistLogs": Item(name="Alchemist's Logs", description="Logs and notes from an nefarious alchemist, detailing various experiments.", image_filename="notebook.png")
+        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=10),
+        "aurum flower": Item(name="Aurum Flower", description="A rare golden flower that only blooms in the meadow.", image_filename="flower.png"),
+        "holy water vial": Item(name="Holy Water Vial", description="A vial of holy water that can be thrown at enemies for massive damage.", image_filename="vial.png"),
+        "storage room key": Item(name="Storage Room Key", description="A key that unlocks the storage room in the castle.", image_filename="key.png"),
+        "red amulet": Item(name="Red Amulet", description="A ruby red amulet that glows with ominous power.", image_filename="amulet.png"),
+        "empty amulet": Item(name="Empty Amulet", description="An amulet with an empty socket, waiting to be filled with a corrupt soul.", image_filename="empty_amulet.png"),
+        "jar of pickles": Item(name="Jar of Pickles", description="A jar filled with pickles, surprisingly well-preserved and tasty.", image_filename="pickles.png"),
+        "queen's pendant": Item(name="The Queen's Pendant", description="A holy relic pendant that once belonged to the late queen with the power to cleanse the wicked.", image_filename="pendant.png"),
+        "alchemist's logs": Item(name="Alchemist's Logs", description="Logs and notes from a nefarious alchemist, detailing various experiments.", image_filename="notebook.png"),
+        "crested shield": Item(name="Crested Shield", description="A shield emblazoned with the royal crest of Tridica.", image_filename="shield.png"),
+        "ham": Item(name="Ham", description="A piece of ham.", image_filename="ham.png"),
     }
 
     # define locations
     all_locations = {
-        # "EndLocation": Location(name="the end location", description="There also isn't much to do here yet. The walls have two-toned scrolling checkerboard patterns covering them.", items=[all_items["sword"]], characters=[]),
-        "StartLocation": Location(name="Graveyard", description="Behind your farmshed are two graves marked by crosses and an empty ditch that you crawled out of.", items=[all_items("Sycthe")], characters=[]),
-        "CorruptedForest": Location(name="Corrupted Forest", description="The forest, once a lush and verdant sanctuary teeming with life, is now a nightmarish tableau of decay. Twisted trees claw at the overcast sky, their leaves a sickly brown. A pervasive, unnatural fog slithers between gnarled roots and choking vines. Glimpses of the castle loom distantly through the mist, its spires a haunting silhouette against the grey light. The silence is oppressive; no birdsong or rustle of small creatures disturbs the air. The earth is littered with fallen branches, swords, and shields half-buried in the muck. You see an obscured path on the left and the main road leading out the forest on the right.", items=[], characters=[QueenElianora]),
-        "Meadow": Location(name="Peaceful Meadow", description="A small hidden meadow gently lit by sunlight with a running creek. There's a small patch of golden flowers next to it.", items=[AurumFlower], characters=[]),
-        "ChurchOfLenia": Location(name="The Church of Lenia", description="The ruins of the Church of Lenia stand solemnly amidst the desolation, a once-hallowed ground now defiled by tragedy. Tarnished spires reach toward a heavy sky, the grand facade is pockmarked with the scars of battle, and the once vibrant stained-glass windows lay shattered. Dark bloodstains mar the altar stone, a chilling reminder of the brutal massacre that has tainted this sanctuary and the heavy price of a king's wrath. You see the Head Priest Callum mortally wounded and lying bleeding at the foot of the altar.", items=[all_items("HolyWaterVial")], characters=[HeadPriestCallum, HellishGhouls]),
-        "WatchTower": Location(name="Castle Gate Watch Tower", description="The watchtower stands forlorn, its stones crumbling and weathered from years of neglect. A palpable sense of unease clings to the cold stones, and faded bloodstains are a grim testament to the tower's violent past. The ominous castle looms in the near distance. You see a lone restless guard at the top who shouts at you.", items=[all_items("StorageRoomKey")], characters=[RestlessGuard]),
-        "CitySquare": Location(name="The City Square of Tridica", description="The city once buzzed with the vibrancy of Tridica's heart, but now it stands as a desolate testament to the kingdom's doom. Buildings that were once elegant and proud are now crumbling facades, their stones eroded and scorched. The streets, once filled with the chatter and laughter of a busy populace, now echo with an eerie silence, occasionally broken by the distant shrieks of lurking ghouls. Sunlight rarely pierces the gloomy overcast. The once-celebrated fountain sit at the center of the town square now supports an executioner's platform, and a 7-foot tall clad in black armor Executioner wielding a mighty Axe stops you from advancing.", items=[all_items("RedAmulet")], characters=[Executioner]),
-        "Marketplace": Location(name="Marketplace", description="The Marketplace is once-bustling area that has now fallen into chaos. Stalls that once sold a variety of goods are overturned and looted. The forge, once the heart of the marketplace, is now cold and abandoned. Ruined Knights are ransacking the area, searching for anything of value.", items=[all_items("CrestedShield")], characters=["RuinedKnights"]),
-        "Castle Hall": Location(name="Castle Hall", description="The Castle Hall is a vast, echoing chamber with high ceilings and grand chandeliers that once sparkled with light. Now, the chandeliers and portraits of long-dead royalty along the walls hang dark and faded. The floor is covered in a thick layer of dust, and the air is heavy with the scent of decay. At the far end of the hall, a grand staircase leads up to the upper levels of the castle. The left door leads to the Dining Hall and the right leads to an ominous presence.", items=[], characters=[]),
-        "Dining Hall": Location(name="Dining Hall", description="The Dining Hall is a long, narrow room with a massive wooden table running down the center. The table could hold extravagant feasts fit for a king, but now it is covered in dust and cobwebs. Giant rats eat away at rotting food strewn across the room. At the far end of the hall there's a locked storage room.", items=[all_items("JarOfPickles")], characters=[GiantRats]),
-        "Dungeon": Location(name="Dungeon", description="The storage room has been converted into a Dungeon - a dark, damp place, with narrow corridors and small, cramped cells. The only light comes from flickering torches mounted on the walls. The cells are empty now, but the heavy iron doors and rusted chains hint at the horrors that once took place here. Chained to the wall is the former Advisor to the King, Allan. He's bruised and emaciated but still lucid.", items=[all_items("QueensPendant")], characters=[AdvisorAllan]),
-        "DragonStatueShrine": Location(name="Dragon Statue Shrine", description="The Dragon Statue is a massive, imposing figure carved from dark stone. It stands at the end of the hall, its wings spread wide and its mouth open in a silent roar. Its right eye is a ruby-like amulet that glow like the one found on the Executioner, and its left is hollow. The ground around it is cracked and uneven.", items=[], characters=["DragonStatue"]), 
-        "AlchemistLaboratory": Location(name="Alchemist's Laboratory", description="The castle laboratory is a cavernous, stone-walled room filled with instruments of alchemy and ancient tomes of forbidden knowledge are piled across workbenches. At the center stands a grand, alchemical apparatus - an Empty Amulet. In the far corner, is a black and red leather-bound notebook, the Alchemist's Logs", items=[all_items("EmptyAmulet", "AlchemistLogs")], characters=[]),
-        "ThroneRoom": Location(name="Throne Room", description="The Throne Room, a grand hall that once echoed with regal proclamations and praises of Lenia, now lies in grim disarray. The once magnificent tapestries that adorned the walls have become moth-eaten and hang in tatters, their vibrant colors faded into a melancholic grayness. On the throne sits King Alderic, but he's transformed as a monstrous husk of his former self. He wears a crown holding a glowing green amulet, and his eyes have glazed over white. 'Come then Chosen! Let us see whose will is stronger — your false god or the greatest dynasty to ever be. Meet thy fate upon my blade and join your silent congregation!'", items=[], characters=[KingAlderic]),
+        "the graveyard": Location(name="The Graveyard", description="Behind your farmshed are two graves marked by crosses and an empty ditch that you crawled out of.", items=[all_items["scythe"]], characters=[]),
+        "the corrupted forest": Location(name="The Corrupted Forest", description="The forest, once a lush and verdant sanctuary teeming with life, is now a nightmarish tableau of decay. Twisted trees claw at the overcast sky, their leaves a sickly brown. A pervasive, unnatural fog slithers between gnarled roots and choking vines. Glimpses of the castle loom distantly through the mist, its spires a haunting silhouette against the grey light. The silence is oppressive; no birdsong or rustle of small creatures disturbs the air. The earth is littered with fallen branches, swords, and shields half-buried in the muck. You see an obscured path on the left and the main road leading out the forest on the right.", items=[], characters=[]),
+        "a peaceful meadow": Location(name="A Peaceful Meadow", description="A small hidden meadow gently lit by sunlight with a running creek. There's a small patch of golden flowers next to it.", items=[all_items["aurum flower"]], characters=[]),
+        "the church of lenia": Location(name="The Church of Lenia", description="The ruins of the Church of Lenia stand solemnly amidst the desolation, a once-hallowed ground now defiled by tragedy. Tarnished spires reach toward a heavy sky, the grand facade is pockmarked with the scars of battle, and the once vibrant stained-glass windows lay shattered. Dark bloodstains mar the altar stone, a chilling reminder of the brutal massacre that has tainted this sanctuary and the heavy price of a king's wrath. You see the Head Priest Callum mortally wounded and lying bleeding at the foot of the altar.", items=[all_items["holy water vial"]], characters=[]),
+        "the castle gate watch tower": Location(name="The Castle Gate Watch Tower", description="The watchtower stands forlorn, its stones crumbling and weathered from years of neglect. A palpable sense of unease clings to the cold stones, and faded bloodstains are a grim testament to the tower's violent past. The ominous castle looms in the near distance. You see a lone restless guard at the top who shouts at you.", items=[all_items["storage room key"]], characters=[]),
+        "the city square of tridica": Location(name="The City Square of Tridica", description="The city once buzzed with the vibrancy of Tridica's heart, but now it stands as a desolate testament to the kingdom's doom. Buildings that were once elegant and proud are now crumbling facades, their stones eroded and scorched. The streets, once filled with the chatter and laughter of a busy populace, now echo with an eerie silence, occasionally broken by the distant shrieks of lurking ghouls. Sunlight rarely pierces the gloomy overcast. The once-celebrated fountain sit at the center of the town square now supports an executioner's platform, and a 7-foot tall clad in black armor Executioner wielding a mighty Axe stops you from advancing.", items=[], characters=[]),
+        "the marketplace": Location(name="The Marketplace", description="The Marketplace is once-bustling area that has now fallen into chaos. Stalls that once sold a variety of goods are overturned and looted. The forge, once the heart of the marketplace, is now cold and abandoned. Ruined Knights are ransacking the area, searching for anything of value.", items=[all_items["crested shield"]], characters=[]),
+        "the castle hall": Location(name="The Castle Hall", description="The Castle Hall is a vast, echoing chamber with high ceilings and grand chandeliers that once sparkled with light. Now, the chandeliers and portraits of long-dead royalty along the walls hang dark and faded. The floor is covered in a thick layer of dust, and the air is heavy with the scent of decay. At the far end of the hall, a grand staircase leads up to the upper levels of the castle. The left door leads to the Dining Hall and the right leads to an ominous presence.", items=[], characters=[]),
+        "the dining hall": Location(name="The Dining Hall", description="The Dining Hall is a long, narrow room with a massive wooden table running down the center. The table could hold extravagant feasts fit for a king, but now it is covered in dust and cobwebs. Giant rats eat away at rotting food strewn across the room. At the far end of the hall there's a locked storage room.", items=[all_items["jar of pickles"]], characters=[]),
+        "the dungeon": Location(name="The Dungeon", description="The storage room has been converted into a Dungeon - a dark, damp place, with narrow corridors and small, cramped cells. The only light comes from flickering torches mounted on the walls. The cells are empty now, but the heavy iron doors and rusted chains hint at the horrors that once took place here. Chained to the wall is the former Advisor to the King, Allan. He's bruised and emaciated but still lucid.", items=[all_items["queen's pendant"]], characters=[]),
+        "the dragon statue shrine": Location(name="The Dragon Statue Shrine", description="The Dragon Statue is a massive, imposing figure carved from dark stone. It stands at the end of the hall, its wings spread wide and its mouth open in a silent roar. Its right eye is a ruby-like amulet that glow like the one found on the Executioner, and its left is hollow. The ground around it is cracked and uneven.", items=[], characters=[]), 
+        "the alchemist's laboratory": Location(name="The Alchemist's Laboratory", description="The castle laboratory is a cavernous, stone-walled room filled with instruments of alchemy and ancient tomes of forbidden knowledge are piled across workbenches. At the center stands a grand, alchemical apparatus - an Empty Amulet. In the far corner, is a black and red leather-bound notebook, the Alchemist's Logs", items=[all_items["empty amulet"], all_items["alchemist's logs"]], characters=[]),
+        "the throne room": Location(name="The Throne Room", description="The Throne Room, a grand hall that once echoed with regal proclamations and praises of Lenia, now lies in grim disarray. The once magnificent tapestries that adorned the walls have become moth-eaten and hang in tatters, their vibrant colors faded into a melancholic grayness. On the throne sits King Alderic, but he's transformed as a monstrous husk of his former self. He wears a crown holding a glowing green amulet, and his eyes have glazed over white. 'Come then Chosen! Let us see whose will is stronger — your false god or the greatest dynasty to ever be. Meet thy fate upon my blade and join your silent congregation!'", items=[], characters=[]),
     }
 
-    # define location connections
-    # all_locations["the starting location"].add_connection("north", all_locations["the end location"])
-    # all_locations["the end location"].add_connection("south", all_locations["the starting location"])
-    all_locations["StartLocation"].add_connection("down", all_locations["CorruptedForest"])
-    all_locations["CorruptedForest"].add_connection("right", all_locations["Meadow"])
-    all_locations["CorruptedForest"].add_connection("down", all_locations["ChurchOfLenia"])
-    all_locations["ChurchOfLenia"].add_connection("right", all_locations["WatchTower"])
-    all_locations["WatchTower"].add_connection("down", all_locations["CitySquare"])
-    all_locations["CitySquare"].add_connection("right", all_locations["Marketplace"])
-    all_locations["CitySquare"].add_connection("down", all_locations["CastleHall"])
-    all_locations["CastleHall"].add_connection("right", all_locations["DiningHall"])
-    all_locations["CastleHall"].add_connection("left", all_locations["DragonStatueShrine"])
-    all_locations["CastleHall"].add_connection("down", all_locations["ThroneRoom"])
-    all_locations["DiningHall"].add_connection("down", all_locations["Dungeon"])
-    all_locations["DragonStatueShrine"].add_connection("right", all_locations["AlchemistLaboratory"])
+    # define location connections - explicitly bidirectional
+    all_locations["the graveyard"].add_connection("down", all_locations["the corrupted forest"])
+    all_locations["the corrupted forest"].add_connection("up", all_locations["the graveyard"])
 
+    all_locations["the corrupted forest"].add_connection("right", all_locations["a peaceful meadow"])
+    all_locations["a peaceful meadow"].add_connection("left", all_locations["the corrupted forest"])
 
-    # define NPCs - keep all keys lowercase
-    # all_characters = {
-    #     "john": Character(name="John", description="A friendly villager", inventory=[all_items["key"]], location=all_locations["the starting location"], max_health=50),
-    # }
+    all_locations["the corrupted forest"].add_connection("down", all_locations["the church of lenia"])
+    all_locations["the church of lenia"].add_connection("up", all_locations["the corrupted forest"])
+
+    all_locations["the church of lenia"].add_connection("right", all_locations["the castle gate watch tower"])
+    all_locations["the castle gate watch tower"].add_connection("left", all_locations["the church of lenia"])
+
+    # blocked initially - guard quest
+    # all_locations["the castle gate watch tower"].add_connection("down", all_locations["the city square of tridica"])
+    # all_locations["the city square of tridica"].add_connection("up", all_locations["the castle gate watch tower"])
+
+    # blocked initially - executioner quest
+    # all_locations["the city square of tridica"].add_connection("right", all_locations["the marketplace"])
+    # all_locations["the marketplace"].add_connection("left", all_locations["the city square of tridica"])
+
+    # blocked initially - executioner quest
+    # all_locations["the city square of tridica"].add_connection("down", all_locations["the castle hall"])
+    # all_locations["the castle hall"].add_connection("up", all_locations["the city square of tridica"])
+
+    all_locations["the castle hall"].add_connection("right", all_locations["the dining hall"])
+    all_locations["the dining hall"].add_connection("left", all_locations["the castle hall"])
+
+    all_locations["the castle hall"].add_connection("left", all_locations["the dragon statue shrine"])
+    all_locations["the dragon statue shrine"].add_connection("right", all_locations["the castle hall"])
+
+    all_locations["the castle hall"].add_connection("down", all_locations["the throne room"])
+    all_locations["the throne room"].add_connection("up", all_locations["the castle hall"])
+
+    # blocked initially - storage room quest
+    # all_locations["the dining hall"].add_connection("down", all_locations["the dungeon"])
+    # all_locations["the dungeon"].add_connection("up", all_locations["the dining hall"])
+
+    # blocked initially - dragon quest
+    # all_locations["the dragon statue shrine"].add_connection("right", all_locations["the alchemist's laboratory"])
+    # all_locations["the alchemist's laboratory"].add_connection("left", all_locations["the dragon statue shrine"])
 
     # define NPCs - keep all keys lowercase
     all_characters = {
-        "john": Character(name="John", description="A friendly villager", inventory=[all_items["ham"]], location=all_locations["StartLocation"], max_health=50),
-        "RimorTheAngel": Character(name="Rimor the Angel", description="Lenia's messenger sent as a vengeful spirit.", inventory=[], location=all_locations["CorruptedForest"], max_health=200),
-        "head_priest_callum": Character(name="Head Priest Callum", description="The head priest of the Church of Lenia, now mortally wounded.", inventory=[], location=all_locations["ChurchOfLenia"], max_health=30),
-        "hellish_ghouls": Character(name="Hellish Ghouls", description="Ghouls that haunt the Church of Lenia.", inventory=[], location=all_locations["ChurchOfLenia"], max_health=100),
-        "restless_guard": Character(name="Restless Guard", description="A guard who still stands vigilant at the watchtower.", inventory=[], location=all_locations["WatchTower"], max_health=70),
-        "executioner": Character(name="Executioner", description="A tall executioner wielding a mighty axe.", inventory=[all_items["RedAmulet"]], location=all_locations["CitySquare"], max_health=150),
-        "ruined_knights": Character(name="Ruined Knights", description="Knights that have fallen to ruin, scavenging the marketplace.", inventory=[], location=all_locations["Marketplace"], max_health=80),
-        "giant_rats": Character(name="Giant Rats", description="Rats that have grown to an enormous size, feasting on rotting food.", inventory=[], location=all_locations["DiningHall"], max_health=20),
-        "advisor_allan": Character(name="Advisor Allan", description="The former advisor to the king, now imprisoned and emaciated.", inventory=[], location=all_locations["Dungeon"], max_health=40),
-        "king_alderic": Character(name="King Alderic", description="The former king, now a monstrous husk.", inventory=[], location=all_locations["ThroneRoom"], max_health=250),
-        "dragon_statue": Character(name="Dragon Statue", description="A massive, imposing figure carved from dark stone.", inventory=[], location=all_locations["DragonStatueShrine"], max_health=200),
+        "john": Character(name="John", description="A friendly villager", inventory=[all_items["ham"]], location=all_locations["the graveyard"], max_health=50),
+        "rimor the angel": Character(name="Rimor the Angel", description="Lenia's messenger sent as a vengeful spirit.", inventory=[], location=all_locations["the corrupted forest"], max_health=200),
+        "head priest callum": Character(name="Head Priest Callum", description="The head priest of the Church of Lenia, now mortally wounded.", inventory=[], location=all_locations["the church of lenia"], max_health=30),
+        "hellish ghouls": Character(name="Hellish Ghouls", description="Ghouls that haunt the Church of Lenia.", inventory=[], location=all_locations["the church of lenia"], max_health=100),
+        "restless guard": Character(name="Restless Guard", description="A guard who still stands vigilant at the watchtower.", inventory=[], location=all_locations["the castle gate watch tower"], max_health=70),
+        "executioner": Character(name="Executioner", description="A tall executioner wielding a mighty axe.", inventory=[all_items["red amulet"]], location=all_locations["the city square of tridica"], max_health=150),
+        "ruined knights": Character(name="Ruined Knights", description="Knights that have fallen to ruin, scavenging the marketplace.", inventory=[], location=all_locations["the marketplace"], max_health=80),
+        "giant rats": Character(name="Giant Rats", description="Rats that have grown to an enormous size, feasting on rotting food.", inventory=[], location=all_locations["the dining hall"], max_health=20),
+        "advisor allan": Character(name="Advisor Allan", description="The former advisor to the king, now imprisoned and emaciated.", inventory=[], location=all_locations["the dungeon"], max_health=40),
+        "king alderic": Character(name="King Alderic", description="The former king, now a monstrous husk.", inventory=[], location=all_locations["the throne room"], max_health=250),
+        "dragon statue": Character(name="Dragon Statue", description="A massive, imposing figure carved from dark stone.", inventory=[], location=all_locations["the dragon statue shrine"], max_health=200),
     }
 
-
     # add NPCs to locations
-    all_locations["the starting location"].add_character(all_characters["john"])
-    all_locations["CorruptedForest"].add_character(all_characters["RimorTheAngel"])
-    all_locations["ChurchOfLenia"].add_character(all_characters["HeadPriestCallum"])
-    all_locations["ChurchOfLenia"].add_character(all_characters["HellishGhouls"])
-    all_locations["WatchTower"].add_character(all_characters["RestlessGuard"])
-    all_locations["CitySquare"].add_character(all_characters["Executioner"])
-    all_locations["Marketplace"].add_character(all_characters["RuinedKnights"])
-    all_locations["DiningHall"].add_character(all_characters["GiantRats"])
-    all_locations["Dungeon"].add_character(all_characters["AdvisorAllan"])
-    all_locations["DragonStatueShrine"].add_character(all_characters["DragonStatue"])
-    all_locations["ThroneRoom"].add_character(all_characters["KingAlderic"])
+    all_locations["the graveyard"].add_character(all_characters["john"])
+    all_locations["the corrupted forest"].add_character(all_characters["rimor the angel"])
+    all_locations["the church of lenia"].add_character(all_characters["head priest callum"])
+    all_locations["the church of lenia"].add_character(all_characters["hellish ghouls"])
+    all_locations["the castle gate watch tower"].add_character(all_characters["restless guard"])
+    all_locations["the city square of tridica"].add_character(all_characters["executioner"])
+    all_locations["the marketplace"].add_character(all_characters["ruined knights"])
+    all_locations["the dining hall"].add_character(all_characters["giant rats"])
+    all_locations["the dungeon"].add_character(all_characters["advisor allan"])
+    all_locations["the dragon statue shrine"].add_character(all_characters["dragon statue"])
+    all_locations["the throne room"].add_character(all_characters["king alderic"])
 
     # define player and initialize
-    player = Player(name="Player", description="A wandering traveler", inventory=[all_items["amulet"]], location=all_locations["the starting location"], max_health=100)
-    all_locations["the starting location"].add_character(player)
+    player = Player(name="Player", description="A wandering traveler", inventory=[], location=all_locations["the graveyard"], max_health=100)
+    all_locations["the graveyard"].add_character(player)
 
     # define quests
     all_quests = {
         # Standings -100, -50, 50, 100; intermediate quests like dragon; 3 endings
         # Blocks - 1. Get the guard to let you pass 2. Defeat Executioner 3. Unlock dragon statue 4. Unlock storage room/dungeon
-        "Convince the Guard": Quest(name="Convince the Guard", description="Convince the restless guard to let you pass the watchtower.", unlock_conditions={}, complete_conditions={"standings": 100}),
-        "Defeat the Executioner": Quest(name="Defeat the Executioner", description="Defeat the Executioner guarding the city square.", unlock_conditions={}, complete_conditions={"characters_dead": ["executioner"]}),
-        "Unlock the Dragon": Quest(name="Defeat the Dragon", description="Defeat the dragon guarding the castle.", unlock_conditions={"has_items":[all_items["RedAmulet"]]}, complete_conditions={""}), # give the dragon statue the red amulet
-        "Unlock the Storage Room": Quest(name="Unlock the Storage Room", description="Unlock the storage room in the castle.", unlock_conditions={}, complete_conditions={"has_items": [all_items["StorageRoomKey"]]}),
+        
+        # to-do: guard standing must be reach some value to pass
+        "Convince the Guard": Quest(name="Convince the Guard", description="Convince the restless guard to let you pass the watchtower.", unlock_conditions={"at_location": "the castle gate watch tower"}, complete_conditions={"standings": {"guard": 100}}),
+        
+        "Defeat the Executioner": Quest(name="Defeat the Executioner", description="Defeat the Executioner guarding the city square.", unlock_conditions={"at_location": "the city square of tridica"}, complete_conditions={"characters_dead": ["executioner"]}),
+        
+        "Unlock the Dragon": Quest(name="Defeat the Dragon", description="Defeat the dragon guarding the castle.", unlock_conditions={"has_items":[all_items["red amulet"]]}, complete_conditions={}), # give the dragon statue the red amulet
+        
+        "Unlock the Storage Room": Quest(name="Unlock the Storage Room", description="Unlock the storage room in the castle.", unlock_conditions={"at_location": "the dining hall"}, complete_conditions={"has_items": [all_items["storage room key"]]}),
 
         # 3 Endings
         # good (Spare King Alderic), bad (Imprison King Alderic), neutral (Kill King Alderic)
-        "Spare King Alderic": Quest(name="Spare King Alderic", description="Spare the corrupted king and show mercy.", unlock_conditions={"has_items": [all_items["QueensPendant"]]}, complete_conditions={}),
-        "Defeat King Alderic": Quest(name="Defeat King Alderic", description="Defeat the corrupted king and end his reign of terror.", unlock_conditions={}, complete_conditions={"characters_dead": ["king alderic"]}),
-        "Imprison King Alderic": Quest(name="Imprison King Alderic", description="Imprison the corrupted king and seal him away, dooming the nation.", unlock_conditions={"has_items": [all_items["QueensPendant"]]}, complete_conditions={}),
+        "Spare King Alderic": Quest(name="Spare King Alderic", description="Spare the corrupted king and show mercy.", unlock_conditions={"at_location": "the throne room", "has_items": [all_items["queen's pendant"]]}, complete_conditions={}),
+        "Defeat King Alderic": Quest(name="Defeat King Alderic", description="Defeat the corrupted king and end his reign of terror.", unlock_conditions={"at_location": "the throne room"}, complete_conditions={"characters_dead": ["king alderic"]}),
+        "Imprison King Alderic": Quest(name="Imprison King Alderic", description="Imprison the corrupted king and seal him away, dooming the nation.", unlock_conditions={"has_items": [all_items["queen's pendant"]]}, complete_conditions={}),
 
         # "Defeat John": Quest(name="Defeat John", description="Defeat John", unlock_conditions={}, complete_conditions={"characters_dead": ["john"]}),
         #"Go North": Quest(name="Go North", description="This is a test quest", unlock_conditions={}, complete_conditions={"at_location": "the end location"}),

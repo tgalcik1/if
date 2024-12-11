@@ -112,7 +112,7 @@ class Character:
 
     def give_item(self, item, target):
         if item in self.inventory:
-            target.add_item(item)
+            target.inventory.append(item)
             self.inventory.remove(item)
             print(json.dumps({"type": "system-message", "message": f"{self.name} gave {target.name} their {item.name}."}))
             sys.stdout.flush()

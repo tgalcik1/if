@@ -40,10 +40,10 @@ export default {
 <style scoped>
 .character-dialogue-window {
     position: fixed;
-    top: 0;
+    top: 40px;
     left: 0;
     width: calc(100% - 300px);
-    height: 100vh;
+    height: calc(100vh - 40px);
     z-index: 2;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(15px);

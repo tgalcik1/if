@@ -99,7 +99,7 @@ ipcMain.on('toMain', (event, args) => {
 
 function startPythonGameEngine(event){
   const pythonScriptPath = path.join(__dirname, '../../game-engine/main.py');
-  pythonProcess = spawn('python3', [pythonScriptPath]);
+  pythonProcess = spawn('python', [pythonScriptPath]);
 
   // fun fact electron likes to buffer data. this causes json.parse to freak out
   let buffer = '';

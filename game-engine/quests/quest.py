@@ -27,7 +27,7 @@ class Quest():
                         return False
             
             # player needs to be at a specific location
-            if condition == "at_location" and value != player.location.name:
+            if condition == "at_location" and value != player.location.name.lower():
                 return False
             
             # player needs to have certain other quests already completed
