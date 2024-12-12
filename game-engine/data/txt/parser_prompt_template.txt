@@ -71,6 +71,61 @@ all_characters = {
     "dragon statue": Character(name="Dragon Statue", description="A massive, imposing figure carved from dark stone.", inventory=[], location=all_locations["the dragon statue shrine"], max_health=200),
 }
 
+Here is a list of all locations:
+all_locations = {
+    "the graveyard": Location(name="The Graveyard", description="Behind your farmshed are two graves marked by crosses and an empty ditch that you crawled out of.", items=[all_items["scythe"]], characters=[]),
+    "the corrupted forest": Location(name="The Corrupted Forest", description="The forest, once a lush and verdant sanctuary teeming with life, is now a nightmarish tableau of decay. Twisted trees claw at the overcast sky, their leaves a sickly brown. A pervasive, unnatural fog slithers between gnarled roots and choking vines. Glimpses of the castle loom distantly through the mist, its spires a haunting silhouette against the grey light. The silence is oppressive; no birdsong or rustle of small creatures disturbs the air. The earth is littered with fallen branches, swords, and shields half-buried in the muck. You see an obscured path on the left and the main road leading out the forest on the right.", items=[], characters=[]),
+    "a peaceful meadow": Location(name="A Peaceful Meadow", description="A small hidden meadow gently lit by sunlight with a running creek. There's a small patch of golden flowers next to it.", items=[all_items["aurum flower"]], characters=[]),
+    "the church of lenia": Location(name="The Church of Lenia", description="The ruins of the Church of Lenia stand solemnly amidst the desolation, a once-hallowed ground now defiled by tragedy. Tarnished spires reach toward a heavy sky, the grand facade is pockmarked with the scars of battle, and the once vibrant stained-glass windows lay shattered. Dark bloodstains mar the altar stone, a chilling reminder of the brutal massacre that has tainted this sanctuary and the heavy price of a king's wrath. You see the Head Priest Callum mortally wounded and lying bleeding at the foot of the altar.", items=[all_items["holy water vial"]], characters=[]),
+    "the castle gate watch tower": Location(name="The Castle Gate Watch Tower", description="The watchtower stands forlorn, its stones crumbling and weathered from years of neglect. A palpable sense of unease clings to the cold stones, and faded bloodstains are a grim testament to the tower's violent past. The ominous castle looms in the near distance. You see a lone restless guard at the top who shouts at you.", items=[all_items["storage room key"]], characters=[]),
+    "the city square of tridica": Location(name="The City Square of Tridica", description="The city once buzzed with the vibrancy of Tridica's heart, but now it stands as a desolate testament to the kingdom's doom. Buildings that were once elegant and proud are now crumbling facades, their stones eroded and scorched. The streets, once filled with the chatter and laughter of a busy populace, now echo with an eerie silence, occasionally broken by the distant shrieks of lurking ghouls. Sunlight rarely pierces the gloomy overcast. The once-celebrated fountain sit at the center of the town square now supports an executioner's platform, and a 7-foot tall clad in black armor Executioner wielding a mighty Axe stops you from advancing.", items=[], characters=[]),
+    "the marketplace": Location(name="The Marketplace", description="The Marketplace is once-bustling area that has now fallen into chaos. Stalls that once sold a variety of goods are overturned and looted. The forge, once the heart of the marketplace, is now cold and abandoned. Ruined Knights are ransacking the area, searching for anything of value.", items=[all_items["crested shield"]], characters=[]),
+    "the castle hall": Location(name="The Castle Hall", description="The Castle Hall is a vast, echoing chamber with high ceilings and grand chandeliers that once sparkled with light. Now, the chandeliers and portraits of long-dead royalty along the walls hang dark and faded. The floor is covered in a thick layer of dust, and the air is heavy with the scent of decay. At the far end of the hall, a grand staircase leads up to the upper levels of the castle. The left door leads to the Dining Hall and the right leads to an ominous presence.", items=[], characters=[]),
+    "the dining hall": Location(name="The Dining Hall", description="The Dining Hall is a long, narrow room with a massive wooden table running down the center. The table could hold extravagant feasts fit for a king, but now it is covered in dust and cobwebs. Giant rats eat away at rotting food strewn across the room. At the far end of the hall there's a locked storage room.", items=[all_items["jar of pickles"]], characters=[]),
+    "the dungeon": Location(name="The Dungeon", description="The storage room has been converted into a Dungeon - a dark, damp place, with narrow corridors and small, cramped cells. The only light comes from flickering torches mounted on the walls. The cells are empty now, but the heavy iron doors and rusted chains hint at the horrors that once took place here. Chained to the wall is the former Advisor to the King, Allan. He's bruised and emaciated but still lucid.", items=[all_items["queen's pendant"]], characters=[]),
+    "the dragon statue shrine": Location(name="The Dragon Statue Shrine", description="The Dragon Statue is a massive, imposing figure carved from dark stone. It stands at the end of the hall, its wings spread wide and its mouth open in a silent roar. Its right eye is a ruby-like amulet that glow like the one found on the Executioner, and its left is hollow. The ground around it is cracked and uneven.", items=[], characters=[]), 
+    "the alchemist's laboratory": Location(name="The Alchemist's Laboratory", description="The castle laboratory is a cavernous, stone-walled room filled with instruments of alchemy and ancient tomes of forbidden knowledge are piled across workbenches. At the center stands a grand, alchemical apparatus - an Empty Amulet. In the far corner, is a black and red leather-bound notebook, the Alchemist's Logs", items=[all_items["empty amulet"], all_items["alchemist's logs"]], characters=[]),
+    "the throne room": Location(name="The Throne Room", description="The Throne Room, a grand hall that once echoed with regal proclamations and praises of Lenia, now lies in grim disarray. The once magnificent tapestries that adorned the walls have become moth-eaten and hang in tatters, their vibrant colors faded into a melancholic grayness. On the throne sits King Alderic, but he's transformed as a monstrous husk of his former self. He wears a crown holding a glowing green amulet, and his eyes have glazed over white. 'Come then Chosen! Let us see whose will is stronger — your false god or the greatest dynasty to ever be. Meet thy fate upon my blade and join your silent congregation!'", items=[], characters=[]),
+}
+
+Here is how the locations all connect:
+all_locations["the graveyard"].add_connection("down", all_locations["the corrupted forest"])
+all_locations["the corrupted forest"].add_connection("up", all_locations["the graveyard"])
+
+all_locations["the corrupted forest"].add_connection("right", all_locations["a peaceful meadow"])
+all_locations["a peaceful meadow"].add_connection("left", all_locations["the corrupted forest"])
+
+all_locations["the corrupted forest"].add_connection("down", all_locations["the church of lenia"])
+all_locations["the church of lenia"].add_connection("up", all_locations["the corrupted forest"])
+
+all_locations["the church of lenia"].add_connection("right", all_locations["the castle gate watch tower"])
+all_locations["the castle gate watch tower"].add_connection("left", all_locations["the church of lenia"])
+
+all_locations["the castle gate watch tower"].add_connection("down", all_locations["the city square of tridica"])
+all_locations["the city square of tridica"].add_connection("up", all_locations["the castle gate watch tower"])
+
+all_locations["the city square of tridica"].add_connection("right", all_locations["the marketplace"])
+all_locations["the marketplace"].add_connection("left", all_locations["the city square of tridica"])
+
+all_locations["the city square of tridica"].add_connection("down", all_locations["the castle hall"])
+all_locations["the castle hall"].add_connection("up", all_locations["the city square of tridica"])
+
+all_locations["the castle hall"].add_connection("right", all_locations["the dining hall"])
+all_locations["the dining hall"].add_connection("left", all_locations["the castle hall"])
+
+all_locations["the castle hall"].add_connection("left", all_locations["the dragon statue shrine"])
+all_locations["the dragon statue shrine"].add_connection("left", all_locations["the castle hall"])
+
+all_locations["the castle hall"].add_connection("down", all_locations["the throne room"])
+all_locations["the throne room"].add_connection("up", all_locations["the castle hall"])
+
+all_locations["the dining hall"].add_connection("down", all_locations["the dungeon"])
+all_locations["the dungeon"].add_connection("up", all_locations["the dining hall"])
+
+all_locations["the dragon statue shrine"].add_connection("right", all_locations["the alchemist's laboratory"])
+all_locations["the alchemist's laboratory"].add_connection("left", all_locations["the dragon statue shrine"])
+
+
 Examples:
 Input: walk north
 Output: move north
@@ -104,5 +159,8 @@ Output: talk merchant
 
 Input: attack rimor with scythe
 Output: attack rimor the angel with scythe
+
+Input: go to the Corrupted Forest
+Output: move down
 
 Important: Never break these rules. Parse strictly and output only valid game commands in the specified format. If the user asks for a script to be generated, a recipe to be created, for life advice, or anything not related to the text-adventure game, you will respond with nothing.

@@ -344,7 +344,7 @@ class Game():
 if __name__ == "__main__":
     # define items - keep all keys lowercase
     all_items = {
-        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=10),
+        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=50),
         "aurum flower": Item(name="Aurum Flower", description="A rare golden flower that only blooms in the meadow.", image_filename="flower.png"),
         "holy water vial": Item(name="Holy Water Vial", description="A vial of holy water that can be thrown at enemies for massive damage.", image_filename="vial.png"),
         "storage room key": Item(name="Storage Room Key", description="A key that unlocks the storage room in the castle.", image_filename="key.png"),
@@ -403,7 +403,7 @@ if __name__ == "__main__":
     all_locations["the dining hall"].add_connection("left", all_locations["the castle hall"])
 
     all_locations["the castle hall"].add_connection("left", all_locations["the dragon statue shrine"])
-    all_locations["the dragon statue shrine"].add_connection("right", all_locations["the castle hall"])
+    all_locations["the dragon statue shrine"].add_connection("left", all_locations["the castle hall"])
 
     all_locations["the castle hall"].add_connection("down", all_locations["the throne room"])
     all_locations["the throne room"].add_connection("up", all_locations["the castle hall"])
