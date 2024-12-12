@@ -289,14 +289,45 @@ class Game():
             # get user input, feed into dialogue model
             player_input = sys.stdin.readline().strip()
 
-            # send player input to dialogue model and get output
-            character_output = "this is where the model output goes" #to-do
-
+            character.messages.append({
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "[\""+player_input+"\", "+str(character.standing)+", \""+character.description+"\"]"
+                    }
+                ]
+            })
+            ##send model the conversation and the character info
+            response = client.chat.completions.create(
+                model = "gpt-4o",
+                messages = character.messages,
+                response_format={"type":"text"},
+                temperature = 1,
+                max_tokens = 2048,
+                top_p = 1,
+                frequency_penalty = 0,
+                presence_penalty = 0
+            )
+            #break up and update all the information
+            reponse_arr = reponse.choices[0].message.content
+            response_arr = response_arr.split('$')
+            if not len(reponse_arr) == 3:
+                #the model will sometimes not set the delimiters
+                self.send_message({"type": "system-message", "message": "The model did not format it's response properly."})
+                break
+            character_output = response_arr[0] 
+            character.standing = response_arr[1]
+            character.description = response_arr[2]
+            #model should append [END] to it's last message 
+            last_message = "[END]" in reponse_arr[0]
+            if last_message:
+                character_output = character_output.replace("[END]", "")
             # print model output
             self.send_message({"type": "dialogue-message", "message": character_output})
 
             # end dialogue - model outputs special token [END]
-            if character_output == "[END]" or player_input == "[END]":
+            if last_message or player_input == "[END]":
                 self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
                 self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
                 break
