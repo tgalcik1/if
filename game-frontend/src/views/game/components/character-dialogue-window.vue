@@ -1,17 +1,17 @@
 <template>
     <div class="character-dialogue-window" ref="characterDialogueWindow">
         <div class="header">
-            <p style="color: gray">Conversation with <span style="color: white">Character Name</span></p>
+            <p style="color: gray">Conversation with <span style="color: white">{{ character }}</span></p>
             <button class="end-conversation-button" @click="endConversation">End Conversation</button>
         </div>
 
         <div class="messages-container">
             <div class="messages" v-for="(message, index) in messages" :key="index">
                 <div class="player-message" v-if="message.type === 'player-message'">
-                    <p>{{ message.text }}</p>
+                    <p>{{ message.visibleText }}</p>
                 </div>
                 <div class="dialogue-message" v-else>
-                    <p>{{ message.text }}</p>
+                    <p>{{ message.visibleText }}</p>
                 </div>
             </div>
         </div>
@@ -26,6 +26,19 @@ export default {
             type: Array,
             default: () => [],
         },
+        character: {
+            type: String,
+            default: '',
+        }
+    },
+    data() {
+        return {
+            typingSpeed: 35,
+            messageDelay: 500,
+            isAnimating: false,
+            isButtonHeldDown: false,
+            scrollSmooth: true,
+        };
     },
     methods:{
         endConversation(){
@@ -33,9 +46,73 @@ export default {
                 window.api.send('toMain', { command: 'send-message', message: "[END]" });
             }
         },
-    },  
+        animateMessages() {
+            const nextMessage = this.messages.find((msg) => !msg.visible);
+        
+            if (!nextMessage) {
+                this.isAnimating = false;
+                return;
+            }
+        
+            this.isAnimating = true;
+            nextMessage.visible = true;
+            nextMessage.visibleText = '';
+            let charIndex = 0;
+            const revealCharacter = () => {
+                nextMessage.visibleText += nextMessage.text[charIndex];
+                charIndex++;
+                this.scrollToBottom();
+        
+                if (charIndex < nextMessage.text.length) {
+                    setTimeout(revealCharacter, this.typingSpeed);
+                } else {
+                    this.resetTypingSpeed();
+                    setTimeout(() => {
+                        this.animateMessages();
+                    }, this.messageDelay);
+                }
+            };
+        
+            revealCharacter();
+        },
+        scrollToBottom() {
+            this.$nextTick(() => {
+                const container = this.$refs.characterDialogueWindow;
+                if (container) {
+                    container.scrollTo({
+                        top: container.scrollHeight,
+                        behavior: this.scrollSmooth ? 'smooth' : 'auto',
+                    });
+                }
+            });
+        },
+        speedUpTyping() {
+            this.typingSpeed = 3;
+            this.scrollSmooth = false;
+            this.isButtonHeldDown = true;
+        },
+        resetTypingSpeed() {
+            this.typingSpeed = 35;
+            this.scrollSmooth = true;
+            this.isButtonHeldDown = false;
+        },
+    },
+    watch: {
+        messages: {
+            handler() {
+                if (!this.isAnimating) {
+                    this.animateMessages();
+                }
+            },
+            deep: true,
+        },
+    },
+    mounted() {
+        this.scrollToBottom();
+    }
 };
 </script>
+
 
 <style scoped>
 .character-dialogue-window {
@@ -44,7 +121,7 @@ export default {
     left: 0;
     width: calc(100% - 300px);
     height: calc(100vh - 40px);
-    z-index: 2;
+    z-index: 15;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(15px);
     display: flex;
@@ -77,20 +154,20 @@ export default {
     margin-bottom: 64px;
 }
 
-.character-dialogue-window::-webkit-scrollbar {
+.messages-container::-webkit-scrollbar {
     width: 10px;
 }
 
-.character-dialogue-window::-webkit-scrollbar-track {
+.messages-container::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0);
 }
 
-.character-dialogue-window::-webkit-scrollbar-thumb {
+.messages-container::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.25);
     border-radius: 5px;
 }
 
-.character-dialogue-window::-webkit-scrollbar-thumb:hover {
+.messages-container::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.5);
 }
 

@@ -49,6 +49,7 @@ class Game():
             for line in f:
                 self.send_message({"type": "story-message", "message": line.strip()})
         self.check_all_quests()  # unlocks the first quest
+        self.send_map_update()
 
         # print overview of starting area
         self.send_message({"type": "system-message", "message": f"You are at {self.player.location.name}."})
@@ -61,7 +62,7 @@ class Game():
             item_names = [item.name for item in self.player.location.items]
             if item_names:
                 self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
-        self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
+        self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join([f'{direction} to {loc.name}' for direction, loc in self.player.location.connecting_locations.items()])}"})
 
     def main_loop(self):
         while True:
@@ -85,7 +86,7 @@ class Game():
                     if item_names:
                         self.send_message({"type": "system-message", "message": f"Items in this location: {', '.join(item_names)}"})
 
-                self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join(self.player.location.connecting_locations.keys())}"})
+                self.send_message({"type": "system-message", "message": f"From here you can go: {', '.join([f'{direction} to {loc.name}' for direction, loc in self.player.location.connecting_locations.items()])}"})
 
             # move
             elif action.split()[0] == "move" and len(action.split()) > 1:
@@ -177,6 +178,9 @@ class Game():
             # check quest statuses after stdin
             self.check_all_quests()
 
+            # send map update after stdin
+            self.send_map_update()
+
     def parse_command(self, command):
         # parse command using parser model - return predefined action (get, look, etc.)
         prompt = self.prompt_template + f"\n\n{command}"
@@ -197,6 +201,21 @@ class Game():
     def send_message(self, message):
         print(json.dumps(message))
         sys.stdout.flush()
+
+    def send_map_update(self):
+        locations = {key.lower(): {"name": loc.name} for key, loc in self.locations.items()}
+        connections = [
+            {"source": loc.name.lower(), "target": target.name.lower()}
+            for loc in self.locations.values()
+            for direction, target in loc.connecting_locations.items()
+        ]
+        player_location = self.player.location.name.lower()
+        self.send_message({
+            "type": "map-update",
+            "locations": locations,
+            "connections": connections,
+            "player_location": player_location
+        })
 
     def check_all_quests(self):
         for quest in self.quests.values():
@@ -270,14 +289,52 @@ class Game():
             # get user input, feed into dialogue model
             player_input = sys.stdin.readline().strip()
 
-            # send player input to dialogue model and get output
-            character_output = "this is where the model output goes" #to-do
+            if player_input == "[END]":
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
+                break
 
+            character.messages.append({
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "[\""+player_input+"\", "+str(character.standing)+", \""+character.description+"\"]"
+                    }
+                ]
+            })
+            ##send model the conversation and the character info
+            response = client.chat.completions.create(
+                model = "gpt-4o",
+                messages = character.messages,
+                response_format={"type":"text"},
+                temperature = 1,
+                max_tokens = 2048,
+                top_p = 1,
+                frequency_penalty = 0,
+                presence_penalty = 0
+            )
+            #break up and update all the information
+            response_arr = response.choices[0].message.content
+            response_arr = response_arr.split('$')
+            if not len(response_arr) == 3:
+                #the model will sometimes not set the delimiters
+                self.send_message({"type": "dialogue-window", "message": "The model did not format it's response properly."})
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
+                break
+            character_output = response_arr[0] 
+            character.standing = response_arr[1]
+            character.description = response_arr[2]
+            #model should append [END] to it's last message 
+            last_message = "[END]" in response_arr[0]
+            if last_message:
+                character_output = character_output.replace("[END]", "")
             # print model output
             self.send_message({"type": "dialogue-message", "message": character_output})
 
             # end dialogue - model outputs special token [END]
-            if character_output == "[END]" or player_input == "[END]":
+            if last_message or player_input == "[END]":
                 self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
                 self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
                 break
@@ -393,6 +450,8 @@ if __name__ == "__main__":
 
     # define quests
     all_quests = {
+        "Get Equipped": Quest(name="Get Equipped", description="Find a weapon to defend yourself.", unlock_conditions={"at_location": "the graveyard"}, complete_conditions={"has_items": [all_items["scythe"]]}),
+
         # Standings -100, -50, 50, 100; intermediate quests like dragon; 3 endings
         # Blocks - 1. Get the guard to let you pass 2. Defeat Executioner 3. Unlock dragon statue 4. Unlock storage room/dungeon
         

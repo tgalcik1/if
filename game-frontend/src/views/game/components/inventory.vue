@@ -5,7 +5,7 @@
         <div class="grid">
             <div class="item-slot" v-for="(item, index) in inventory" :key="index">
                 <img
-                    :src="item ? `/items/${item}` : 'https://placehold.co/32x32'"
+                    :src="item ? `/items/${item}` : `/items/frame.png`"
                     alt="."
                     style="width: 100%"
                 />

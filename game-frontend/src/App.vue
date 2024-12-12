@@ -1,11 +1,16 @@
 <template>
   <div id="app">
-    <router-view></router-view>
+    <transition
+      name="fade"
+      mode="out-in"
+      appear
+    >
+      <router-view />
+    </transition>
   </div>
 </template>
 
 <script>
-
 export default {
   name: 'App',
 };
@@ -13,8 +18,13 @@ export default {
 
 <style>
 @font-face {
-    font-family: "dogicapixel";
-    src: url('~@/static/dogicapixel.ttf');
+  font-family: "dogicapixel";
+  src: url('~@/static/dogicapixel.ttf');
+}
+
+@font-face {
+  font-family: "cthulu";
+  src: url('~@/static/cthulu.ttf');
 }
 
 body, input, button, textarea {
@@ -25,5 +35,17 @@ body, input, button, textarea {
   font-stretch: condensed;
 }
 
+body{
+  background-color: black;
+}
 
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 3s, background-color 3s;
+  background-color: black;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  background-color: black;
+}
 </style>
