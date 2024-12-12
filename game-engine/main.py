@@ -8,7 +8,24 @@ from items.item import Item
 from items.weapon import Weapon
 from quests.quest import Quest
 from openai import OpenAI
-client = OpenAI(api_key="")
+
+def load_api_key(filepath):
+    try:
+        with open(filepath, "r") as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        print(f"Error: API key file '{filepath}' not found.")
+        sys.stdout.flush()
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading the API key file: {e}")
+        sys.stdout.flush()
+        sys.exit(1)
+
+api_key_file = "../api_key.txt"
+api_key = load_api_key(api_key_file)
+
+client = OpenAI(api_key=api_key)
 
 class Game():
     def __init__(self, player, items, characters, locations, quests):
