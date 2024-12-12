@@ -289,6 +289,11 @@ class Game():
             # get user input, feed into dialogue model
             player_input = sys.stdin.readline().strip()
 
+            if player_input == "[END]":
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
+                break
+
             character.messages.append({
                 "role": "user",
                 "content": [
@@ -310,17 +315,19 @@ class Game():
                 presence_penalty = 0
             )
             #break up and update all the information
-            reponse_arr = reponse.choices[0].message.content
+            response_arr = response.choices[0].message.content
             response_arr = response_arr.split('$')
-            if not len(reponse_arr) == 3:
+            if not len(response_arr) == 3:
                 #the model will sometimes not set the delimiters
-                self.send_message({"type": "system-message", "message": "The model did not format it's response properly."})
+                self.send_message({"type": "dialogue-window", "message": "The model did not format it's response properly."})
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
                 break
             character_output = response_arr[0] 
             character.standing = response_arr[1]
             character.description = response_arr[2]
             #model should append [END] to it's last message 
-            last_message = "[END]" in reponse_arr[0]
+            last_message = "[END]" in response_arr[0]
             if last_message:
                 character_output = character_output.replace("[END]", "")
             # print model output

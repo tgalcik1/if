@@ -257,7 +257,7 @@
     margin-top: 8px;
     margin-left: 16px;
     margin-right: 8px;
-    background-color: rgb(241, 221, 183);
+    background-color: rgba(241, 189, 183, 0.8);
     padding-left: 12px;
     padding-right: 12px;
     border: 2px solid black;
@@ -273,7 +273,7 @@
     margin-top: 8px;
     margin-left: 16px;
     margin-right: 50%;
-    background-color: white;
+    background-color: rgba(255,255,255,0.8);
     padding-left: 12px;
     padding-right: 12px;
     border: 2px solid black;
@@ -289,7 +289,7 @@
     margin-top: 8px;
     margin-right: 8px;
     margin-left: 50%;
-    background-color: lightblue;
+    background-color: rgba(173, 216, 230, 0.8);
     padding-left: 12px;
     padding-right: 12px;
     border: 2px solid black;

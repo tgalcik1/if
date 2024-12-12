@@ -8,10 +8,10 @@
         <div class="messages-container">
             <div class="messages" v-for="(message, index) in messages" :key="index">
                 <div class="player-message" v-if="message.type === 'player-message'">
-                    <p>{{ message.text }}</p>
+                    <p>{{ message.visibleText }}</p>
                 </div>
                 <div class="dialogue-message" v-else>
-                    <p>{{ message.text }}</p>
+                    <p>{{ message.visibleText }}</p>
                 </div>
             </div>
         </div>
@@ -31,15 +31,88 @@ export default {
             default: '',
         }
     },
+    data() {
+        return {
+            typingSpeed: 35,
+            messageDelay: 500,
+            isAnimating: false,
+            isButtonHeldDown: false,
+            scrollSmooth: true,
+        };
+    },
     methods:{
         endConversation(){
             if (window.api){
                 window.api.send('toMain', { command: 'send-message', message: "[END]" });
             }
         },
-    },  
+        animateMessages() {
+            const nextMessage = this.messages.find((msg) => !msg.visible);
+        
+            if (!nextMessage) {
+                this.isAnimating = false;
+                return;
+            }
+        
+            this.isAnimating = true;
+            nextMessage.visible = true;
+            nextMessage.visibleText = '';
+            let charIndex = 0;
+            const revealCharacter = () => {
+                nextMessage.visibleText += nextMessage.text[charIndex];
+                charIndex++;
+                this.scrollToBottom();
+        
+                if (charIndex < nextMessage.text.length) {
+                    setTimeout(revealCharacter, this.typingSpeed);
+                } else {
+                    this.resetTypingSpeed();
+                    setTimeout(() => {
+                        this.animateMessages();
+                    }, this.messageDelay);
+                }
+            };
+        
+            revealCharacter();
+        },
+        scrollToBottom() {
+            this.$nextTick(() => {
+                const container = this.$refs.characterDialogueWindow;
+                if (container) {
+                    container.scrollTo({
+                        top: container.scrollHeight,
+                        behavior: this.scrollSmooth ? 'smooth' : 'auto',
+                    });
+                }
+            });
+        },
+        speedUpTyping() {
+            this.typingSpeed = 3;
+            this.scrollSmooth = false;
+            this.isButtonHeldDown = true;
+        },
+        resetTypingSpeed() {
+            this.typingSpeed = 35;
+            this.scrollSmooth = true;
+            this.isButtonHeldDown = false;
+        },
+    },
+    watch: {
+        messages: {
+            handler() {
+                if (!this.isAnimating) {
+                    this.animateMessages();
+                }
+            },
+            deep: true,
+        },
+    },
+    mounted() {
+        this.scrollToBottom();
+    }
 };
 </script>
+
 
 <style scoped>
 .character-dialogue-window {
