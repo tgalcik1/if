@@ -290,6 +290,11 @@ class Game():
             # get user input, feed into dialogue model
             player_input = sys.stdin.readline().strip()
 
+            if player_input == "[END]":
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
+                break
+
             character.messages.append({
                 "role": "user",
                 "content": [
@@ -315,7 +320,9 @@ class Game():
             response_arr = response_arr.split('$')
             if not len(response_arr) == 3:
                 #the model will sometimes not set the delimiters
-                self.send_message({"type": "system-message", "message": "The model did not format it's response properly."})
+                self.send_message({"type": "dialogue-window", "message": "The model did not format it's response properly."})
+                self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
+                self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
                 break
             character_output = response_arr[0] 
             character.standing = response_arr[1]
@@ -339,7 +346,7 @@ class Game():
 if __name__ == "__main__":
     # define items - keep all keys lowercase
     all_items = {
-        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=10),
+        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=50),
         "aurum flower": Item(name="Aurum Flower", description="A rare golden flower that only blooms in the meadow.", image_filename="flower.png"),
         "holy water vial": Item(name="Holy Water Vial", description="A vial of holy water that can be thrown at enemies for massive damage.", image_filename="vial.png"),
         "storage room key": Item(name="Storage Room Key", description="A key that unlocks the storage room in the castle.", image_filename="key.png"),
@@ -398,7 +405,7 @@ if __name__ == "__main__":
     all_locations["the dining hall"].add_connection("left", all_locations["the castle hall"])
 
     all_locations["the castle hall"].add_connection("left", all_locations["the dragon statue shrine"])
-    all_locations["the dragon statue shrine"].add_connection("right", all_locations["the castle hall"])
+    all_locations["the dragon statue shrine"].add_connection("left", all_locations["the castle hall"])
 
     all_locations["the castle hall"].add_connection("down", all_locations["the throne room"])
     all_locations["the throne room"].add_connection("up", all_locations["the castle hall"])
