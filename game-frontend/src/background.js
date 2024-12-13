@@ -99,7 +99,16 @@ ipcMain.on('toMain', (event, args) => {
 
 function startPythonGameEngine(event){
   const pythonScriptPath = path.join(__dirname, '../../game-engine/main.py');
-  pythonProcess = spawn('python', [pythonScriptPath]);
+
+  let pythonExecutable;
+  if (process.platform === 'win32') {
+    pythonExecutable = path.join(__dirname, '../../venv/Scripts/python.exe');
+  } else {
+    pythonExecutable = path.join(__dirname, '../../venv/bin/python');
+  }
+
+  pythonProcess = spawn(pythonExecutable, [pythonScriptPath]);
+  //pythonProcess = spawn('python', [pythonScriptPath]);
 
   // fun fact electron likes to buffer data. this causes json.parse to freak out
   let buffer = '';

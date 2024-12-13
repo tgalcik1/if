@@ -1,4 +1,5 @@
 import sys
+import time
 import json
 from characters.player import Player
 from characters.character import Character
@@ -7,7 +8,24 @@ from items.item import Item
 from items.weapon import Weapon
 from quests.quest import Quest
 from openai import OpenAI
-client = OpenAI(api_key="")
+
+def load_api_key(filepath):
+    try:
+        with open(filepath, "r") as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        print(f"Error: API key file '{filepath}' not found.")
+        sys.stdout.flush()
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading the API key file: {e}")
+        sys.stdout.flush()
+        sys.exit(1)
+
+api_key_file = "../api_key.txt"
+api_key = load_api_key(api_key_file)
+
+client = OpenAI(api_key=api_key)
 
 class Game():
     def __init__(self, player, items, characters, locations, quests):
@@ -335,6 +353,7 @@ class Game():
 
             # end dialogue - model outputs special token [END]
             if last_message or player_input == "[END]":
+                time.sleep(6)
                 self.send_message({"type": "dialogue-window", "status": "end-dialogue"})
                 self.send_message({"type": "system-message", "message": f"You end the conversation with {character.name}."})
                 break
@@ -344,7 +363,7 @@ class Game():
 if __name__ == "__main__":
     # define items - keep all keys lowercase
     all_items = {
-        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=10),
+        "scythe": Weapon(name="Scythe", description="A sharp scythe that can be used to harvest crops or enemies.", image_filename="scythe.png", damage=50),
         "aurum flower": Item(name="Aurum Flower", description="A rare golden flower that only blooms in the meadow.", image_filename="flower.png"),
         "holy water vial": Item(name="Holy Water Vial", description="A vial of holy water that can be thrown at enemies for massive damage.", image_filename="vial.png"),
         "storage room key": Item(name="Storage Room Key", description="A key that unlocks the storage room in the castle.", image_filename="key.png"),
@@ -403,7 +422,7 @@ if __name__ == "__main__":
     all_locations["the dining hall"].add_connection("left", all_locations["the castle hall"])
 
     all_locations["the castle hall"].add_connection("left", all_locations["the dragon statue shrine"])
-    all_locations["the dragon statue shrine"].add_connection("right", all_locations["the castle hall"])
+    all_locations["the dragon statue shrine"].add_connection("left", all_locations["the castle hall"])
 
     all_locations["the castle hall"].add_connection("down", all_locations["the throne room"])
     all_locations["the throne room"].add_connection("up", all_locations["the castle hall"])
